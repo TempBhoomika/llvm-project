@@ -338,7 +338,7 @@ PreservedAnalyses MPIUsageSanitizerPass::run(Module &M, ModuleAnalysisManager &A
     Severity,
     ErrorCategory::General,
     SummaryMsg);  
-    M.getContext().diagnose(MPISanitizerDiagnosticInfo(Severity, SummaryMsg));
+    M.getContext().diagnose(MPISanitizerDiagnosticInfo(Err));
   }
   
   LLVM_DEBUG(dbgs() << "MPI Usage Sanitizer processed " << Stats.TotalMPICalls 
