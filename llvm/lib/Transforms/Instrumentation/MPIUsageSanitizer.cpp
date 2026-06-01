@@ -331,14 +331,14 @@ PreservedAnalyses MPIUsageSanitizerPass::run(Module &M, ModuleAnalysisManager &A
       SummaryMsg += ", encountered " + std::to_string(Stats.ErrorsEncountered) + " errors";
     }
     
-    DiagnosticSeverity Severity = Stats.ErrorsEncountered > 0 ? 
-        DiagnosticSeverity::DS_Warning : DiagnosticSeverity::DS_Remark;
+   ErrorLevel Level = Stats.ErrorsEncountered > 0 ?
+    ErrorLevel::Warning :
+    ErrorLevel::Info;
 
-    MPIErrorInfo Err(
-    Severity,
+MPIErrorInfo Err(
+    Level,
     ErrorCategory::StaticAnalysis,
-    SummaryMsg);  
-    M.getContext().diagnose(MPISanitizerDiagnosticInfo(Err));
+    SummaryMsg);
   }
   
   LLVM_DEBUG(dbgs() << "MPI Usage Sanitizer processed " << Stats.TotalMPICalls 
