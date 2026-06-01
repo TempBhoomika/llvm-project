@@ -336,7 +336,7 @@ PreservedAnalyses MPIUsageSanitizerPass::run(Module &M, ModuleAnalysisManager &A
 
     MPIErrorInfo Err(
     Severity,
-    ErrorCategory::General,
+    ErrorCategory::StaticAnalysis,
     SummaryMsg);  
     M.getContext().diagnose(MPISanitizerDiagnosticInfo(Err));
   }
