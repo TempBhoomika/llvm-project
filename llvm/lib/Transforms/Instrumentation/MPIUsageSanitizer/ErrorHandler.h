@@ -145,8 +145,7 @@ public:
   void print(DiagnosticPrinter &DP) const override;
   
   static bool classof(const DiagnosticInfo *DI) {
-    return DI->getKind() >= DK_FirstPluginKind &&
-           DI->getKind() <= DK_LastPluginKind;
+    return DI->getKind() == DK_FirstPluginKind;
   }
   
   /// Get the error info
