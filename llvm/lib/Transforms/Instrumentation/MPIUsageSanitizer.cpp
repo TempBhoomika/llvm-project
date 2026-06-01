@@ -333,7 +333,11 @@ PreservedAnalyses MPIUsageSanitizerPass::run(Module &M, ModuleAnalysisManager &A
     
     DiagnosticSeverity Severity = Stats.ErrorsEncountered > 0 ? 
         DiagnosticSeverity::DS_Warning : DiagnosticSeverity::DS_Remark;
-    
+
+    MPIErrorInfo Err(
+    Severity,
+    ErrorCategory::General,
+    SummaryMsg);  
     M.getContext().diagnose(MPISanitizerDiagnosticInfo(Severity, SummaryMsg));
   }
   
