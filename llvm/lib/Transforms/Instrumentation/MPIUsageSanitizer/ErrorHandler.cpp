@@ -108,6 +108,9 @@ ErrorHandler::~ErrorHandler() {
   }
 }
 
+void ErrorHandler: reportError(StringRef Message){
+    return;
+}
 void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringRef Message) {
   MPIErrorInfo Error = createMPIErrorInfo(Level, Category, Message);
   
