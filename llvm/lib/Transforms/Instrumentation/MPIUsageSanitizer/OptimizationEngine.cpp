@@ -566,7 +566,7 @@ void OptimizationEngine::updateStatistics(const CallBase& Site,
                                          const OptimizationDecision& Decision) {
   Stats.TotalCallBases++;
   Stats.CallsByType[Site.Type]++;
-  Stats.CallsByLevel[Decision.Level]++;
+  Stats.CallsByLevel[static_cast<OptimizationLevel>(Decision.Level)]++;
   
   if (Decision.ShouldInstrument) {
     Stats.InstrumentedCallBases++;

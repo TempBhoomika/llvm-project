@@ -15,7 +15,7 @@
 #include "MPICallDetector.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instruction.h"
-#include "llvm/IR/CallBase.h"
+#include "llvm/IR/InstrTypes.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/Timer.h"
