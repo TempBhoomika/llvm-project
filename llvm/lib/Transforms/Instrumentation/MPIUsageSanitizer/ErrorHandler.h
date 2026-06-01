@@ -25,6 +25,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include <string>
 #include <memory>
+#include <set>
 
 namespace llvm {
 
