@@ -17,6 +17,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/IR/GlobalVariable.h"
 #include "llvm/ADT/StringSwitch.h"
 #include <memory>
 
