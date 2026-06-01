@@ -31,7 +31,7 @@ using namespace llvm;
 // MPISanitizerDiagnosticInfo Implementation
 //===----------------------------------------------------------------------===//
 
-MPISanitizerDiagnosticInfo::MPISanitizerDiagnosticInfo(const ErrorInfo& Error)
+MPISanitizerDiagnosticInfo::MPISanitizerDiagnosticInfo(const MPIErrorInfo& Error)
     : DiagnosticInfo(DK_FirstPluginKind, 
                      Error.Level == ErrorLevel::Fatal ? DS_Error :
                      Error.Level == ErrorLevel::Error ? DS_Error :
@@ -109,7 +109,7 @@ ErrorHandler::~ErrorHandler() {
 }
 
 void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringRef Message) {
-  ErrorInfo Error = createErrorInfo(Level, Category, Message);
+  MPIErrorInfo Error = createMPIErrorInfo(Level, Category, Message);
   
   if (CollectStatistics) {
     updateStatistics(Error);
@@ -124,7 +124,7 @@ void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringR
 
 void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringRef Message,
                                const DebugLoc& Location) {
-  ErrorInfo Error = createErrorInfo(Level, Category, Message);
+  MPIErrorInfo Error = createMPIErrorInfo(Level, Category, Message);
   Error.Location = Location;
   
   if (CollectStatistics) {
@@ -140,7 +140,7 @@ void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringR
 
 void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringRef Message,
                                const Instruction* Inst) {
-  ErrorInfo Error = createErrorInfo(Level, Category, Message);
+  MPIErrorInfo Error = createMPIErrorInfo(Level, Category, Message);
   Error.Inst = Inst;
   
   if (Inst) {
@@ -161,7 +161,7 @@ void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringR
 
 void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringRef Message,
                                const Function* Func) {
-  ErrorInfo Error = createErrorInfo(Level, Category, Message);
+  MPIErrorInfo Error = createMPIErrorInfo(Level, Category, Message);
   Error.Func = Func;
   
   if (CollectStatistics) {
@@ -177,7 +177,7 @@ void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringR
 
 void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringRef Message,
                                const Instruction* Inst, const StringMap<std::string>& Context) {
-  ErrorInfo Error = createErrorInfo(Level, Category, Message);
+  MPIErrorInfo Error = createMPIErrorInfo(Level, Category, Message);
   Error.Inst = Inst;
   Error.Context = Context;
   
@@ -198,7 +198,7 @@ void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringR
 }
 
 void ErrorHandler::reportMPIError(ErrorLevel Level, StringRef Message, const CallSite& Site) {
-  ErrorInfo Error = createErrorInfo(Level, ErrorCategory::CallDetection, Message);
+  MPIErrorInfo Error = createMPIErrorInfo(Level, ErrorCategory::CallDetection, Message);
   
   // Add MPI-specific context
   Error.Context["mpi_function"] = Site.FunctionName.str();
@@ -222,7 +222,7 @@ void ErrorHandler::reportMPIError(ErrorLevel Level, StringRef Message, const Cal
 }
 
 void ErrorHandler::reportConfigError(ErrorLevel Level, StringRef Message, StringRef ConfigKey) {
-  ErrorInfo Error = createErrorInfo(Level, ErrorCategory::Configuration, Message);
+  MPIErrorInfo Error = createMPIErrorInfo(Level, ErrorCategory::Configuration, Message);
   
   if (!ConfigKey.empty()) {
     Error.Context["config_key"] = ConfigKey.str();
@@ -241,7 +241,7 @@ void ErrorHandler::reportConfigError(ErrorLevel Level, StringRef Message, String
 
 void ErrorHandler::reportHookError(ErrorLevel Level, StringRef Message, const Instruction* Inst,
                                    StringRef HookName) {
-  ErrorInfo Error = createErrorInfo(Level, ErrorCategory::HookInsertion, Message);
+  MPIErrorInfo Error = createMPIErrorInfo(Level, ErrorCategory::HookInsertion, Message);
   Error.Inst = Inst;
   
   if (!HookName.empty()) {
@@ -266,7 +266,7 @@ void ErrorHandler::reportHookError(ErrorLevel Level, StringRef Message, const In
 
 void ErrorHandler::reportAnalysisError(ErrorLevel Level, StringRef Message, const Function* Func,
                                        StringRef AnalysisType) {
-  ErrorInfo Error = createErrorInfo(Level, ErrorCategory::StaticAnalysis, Message);
+  MPIErrorInfo Error = createMPIErrorInfo(Level, ErrorCategory::StaticAnalysis, Message);
   Error.Func = Func;
   
   if (!AnalysisType.empty()) {
@@ -298,12 +298,12 @@ bool ErrorHandler::shouldContinueAfterError(ErrorLevel Level) const {
   return false;
 }
 
-bool ErrorHandler::shouldContinueAfterError(const ErrorInfo& Error) const {
+bool ErrorHandler::shouldContinueAfterError(const MPIErrorInfo& Error) const {
   RecoveryContext Context = createRecoveryContext(Error, "default");
   return shouldContinueAfterError(Error, Context);
 }
 
-RecoveryStrategy ErrorHandler::determineRecoveryStrategy(const ErrorInfo& Error, const RecoveryContext& Context) const {
+RecoveryStrategy ErrorHandler::determineRecoveryStrategy(const MPIErrorInfo& Error, const RecoveryContext& Context) const {
   // Check error level first
   if (Error.Level == ErrorLevel::Fatal) {
     return RecoveryStrategy::Stop;
@@ -397,7 +397,7 @@ bool ErrorHandler::executeRecoveryStrategy(RecoveryStrategy Strategy, const Reco
   return false;
 }
 
-bool ErrorHandler::shouldContinueAfterError(const ErrorInfo& Error, const RecoveryContext& Context) const {
+bool ErrorHandler::shouldContinueAfterError(const MPIErrorInfo& Error, const RecoveryContext& Context) const {
   // Determine and execute recovery strategy
   RecoveryStrategy Strategy = determineRecoveryStrategy(Error, Context);
   
@@ -415,7 +415,7 @@ bool ErrorHandler::shouldContinueAfterError(const ErrorInfo& Error, const Recove
   return false;
 }
 
-bool ErrorHandler::handleUnsupportedPattern(const ErrorInfo& Error, StringRef PatternDescription) {
+bool ErrorHandler::handleUnsupportedPattern(const MPIErrorInfo& Error, StringRef PatternDescription) {
   if (!GracefulDegradationMode) {
     return false;
   }
@@ -424,7 +424,7 @@ bool ErrorHandler::handleUnsupportedPattern(const ErrorInfo& Error, StringRef Pa
   UnsupportedPatterns.insert(PatternDescription.str());
   
   // Report as info level if graceful degradation is enabled
-  ErrorInfo DegradationInfo(ErrorLevel::Info, ErrorCategory::UnsupportedPattern,
+  MPIErrorInfo DegradationInfo(ErrorLevel::Info, ErrorCategory::UnsupportedPattern,
                            "Gracefully skipping unsupported pattern: " + PatternDescription.str());
   
   if (CollectStatistics) {
@@ -436,7 +436,7 @@ bool ErrorHandler::handleUnsupportedPattern(const ErrorInfo& Error, StringRef Pa
   return true; // Continue processing
 }
 
-void ErrorHandler::collectErrorStatistics(const ErrorInfo& Error) {
+void ErrorHandler::collectErrorStatistics(const MPIErrorInfo& Error) {
   updateStatistics(Error);
   
   // Additional statistics collection for recovery analysis
@@ -449,7 +449,7 @@ void ErrorHandler::collectErrorStatistics(const ErrorInfo& Error) {
   }
 }
 
-SmallVector<StringRef, 4> ErrorHandler::generateRecoveryRecommendations(const ErrorInfo& Error) const {
+SmallVector<StringRef, 4> ErrorHandler::generateRecoveryRecommendations(const MPIErrorInfo& Error) const {
   SmallVector<StringRef, 4> Recommendations;
   
   switch (Error.Category) {
@@ -603,8 +603,8 @@ void ErrorHandler::setErrorRecoveryPolicy(bool ContinueOnWarnings, bool Continue
                     << ", errors=" << (ContinueOnErrors ? "continue" : "stop") << "\n");
 }
 
-SmallVector<const ErrorInfo*, 8> ErrorHandler::getErrorsByCategory(ErrorCategory Category) const {
-  SmallVector<const ErrorInfo*, 8> Result;
+SmallVector<const MPIErrorInfo*, 8> ErrorHandler::getErrorsByCategory(ErrorCategory Category) const {
+  SmallVector<const MPIErrorInfo*, 8> Result;
   for (const auto& Error : Errors) {
     if (Error.Category == Category) {
       Result.push_back(&Error);
@@ -613,8 +613,8 @@ SmallVector<const ErrorInfo*, 8> ErrorHandler::getErrorsByCategory(ErrorCategory
   return Result;
 }
 
-SmallVector<const ErrorInfo*, 8> ErrorHandler::getErrorsByLevel(ErrorLevel Level) const {
-  SmallVector<const ErrorInfo*, 8> Result;
+SmallVector<const MPIErrorInfo*, 8> ErrorHandler::getErrorsByLevel(ErrorLevel Level) const {
+  SmallVector<const MPIErrorInfo*, 8> Result;
   for (const auto& Error : Errors) {
     if (Error.Level == Level) {
       Result.push_back(&Error);
@@ -641,7 +641,7 @@ bool ErrorHandler::hasErrorLevel(ErrorLevel Level) const {
   return false;
 }
 
-std::string ErrorHandler::formatErrorMessage(const ErrorInfo& Error) const {
+std::string ErrorHandler::formatErrorMessage(const MPIErrorInfo& Error) const {
   std::string Result;
   raw_string_ostream OS(Result);
   
@@ -712,7 +712,7 @@ ErrorCategory ErrorHandler::parseErrorCategory(StringRef CategoryStr) {
   return ErrorCategory::PassInfrastructure; // Default
 }
 
-void ErrorHandler::reportToDiagnosticEngine(const ErrorInfo& Error) {
+void ErrorHandler::reportToDiagnosticEngine(const MPIErrorInfo& Error) {
   // Create diagnostic info and report through LLVM's diagnostic engine
   auto DiagInfo = std::make_unique<MPISanitizerDiagnosticInfo>(Error);
   Context.diagnose(*DiagInfo);
@@ -723,7 +723,7 @@ void ErrorHandler::reportToDiagnosticEngine(const ErrorInfo& Error) {
   }
 }
 
-void ErrorHandler::updateStatistics(const ErrorInfo& Error) {
+void ErrorHandler::updateStatistics(const MPIErrorInfo& Error) {
   // Update level counts
   switch (Error.Level) {
     case ErrorLevel::Info:
@@ -745,8 +745,8 @@ void ErrorHandler::updateStatistics(const ErrorInfo& Error) {
   Statistics.CategoryCounts[CategoryName]++;
 }
 
-ErrorInfo ErrorHandler::createErrorInfo(ErrorLevel Level, ErrorCategory Category, StringRef Message) {
-  ErrorInfo Error(Level, Category, Message);
+MPIErrorInfo ErrorHandler::createMPIErrorInfo(ErrorLevel Level, ErrorCategory Category, StringRef Message) {
+  MPIErrorInfo Error(Level, Category, Message);
   
   // Set timestamp
   auto Now = std::chrono::system_clock::now();
@@ -783,7 +783,7 @@ std::string ErrorHandler::formatSourceLocation(const DebugLoc& Location) const {
   return OS.str();
 }
 
-RecoveryContext ErrorHandler::createRecoveryContext(const ErrorInfo& Error, StringRef Phase) const {
+RecoveryContext ErrorHandler::createRecoveryContext(const MPIErrorInfo& Error, StringRef Phase) const {
   RecoveryContext Context;
   Context.CurrentError = &Error;
   Context.ProcessingPhase = Phase;
@@ -806,7 +806,7 @@ RecoveryContext ErrorHandler::createRecoveryContext(const ErrorInfo& Error, Stri
   return Context;
 }
 
-bool ErrorHandler::isErrorSevereInContext(const ErrorInfo& Error, const RecoveryContext& Context) const {
+bool ErrorHandler::isErrorSevereInContext(const MPIErrorInfo& Error, const RecoveryContext& Context) const {
   // Error is severe if:
   // 1. It's on a critical path
   // 2. Too many errors in the same category
