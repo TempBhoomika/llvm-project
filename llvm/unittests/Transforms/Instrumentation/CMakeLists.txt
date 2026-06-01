@@ -14,6 +14,7 @@ add_llvm_unittest(InstrumentationTests
   MPIUsageSanitizer/MetadataExtractorTest.cpp
   MPIUsageSanitizer/HookInserterTest.cpp
   MPIUsageSanitizer/StaticAnalyzerTest.cpp
+  MPIUsageSanitizerConfigTest.cpp
   )
 
 target_link_libraries(InstrumentationTests PRIVATE LLVMTestingSupport)
