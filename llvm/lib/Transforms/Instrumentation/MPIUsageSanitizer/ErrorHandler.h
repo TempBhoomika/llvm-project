@@ -319,7 +319,7 @@ public:
   /// Convert string to error category
   static ErrorCategory parseErrorCategory(StringRef CategoryStr);
 
-private:
+public:
   /// LLVM context for diagnostic reporting
   LLVMContext& Context;
   
