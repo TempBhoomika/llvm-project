@@ -69,7 +69,14 @@ jobs:
             -DLLVM_ENABLE_ASSERTIONS=ON \
             -DLLVM_ENABLE_RTTI=ON \
             -DLLVM_ENABLE_EH=ON \
-            -DLLVM_INCLUDE_TESTS=ON
+            -DLLVM_INCLUDE_TESTS=ON \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++
+      - name: Dump CMake logs on failure
+        if: failure()
+        run: |
+          cat llvm-build/CMakeFiles/CMakeError.log || true
+          cat llvm-build/CMakeFiles/CMakeOutput.log || true
 
       - name: Build LLVM
         run: |
@@ -113,7 +120,7 @@ jobs:
         run: |
           cd llvm-build
 
-          ninja check-mpi-sanitizer || true
+          ninja check-mpi-sanitizer
 
       - name: Upload Logs
         if: failure()
