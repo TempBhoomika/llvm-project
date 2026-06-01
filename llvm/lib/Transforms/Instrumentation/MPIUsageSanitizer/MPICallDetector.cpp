@@ -44,12 +44,12 @@ void MPICallDetector::initialize(Module& M) {
   LLVM_DEBUG(dbgs() << "MPICallDetector initialized with module: " << M.getName() << "\n");
 }
 
-std::vector<CallSite> MPICallDetector::detectMPICalls(Function& F) {
+std::vector<CallBase> MPICallDetector::detectMPICalls(Function& F) {
   return detectMPICalls(F, nullptr);
 }
 
-std::vector<CallSite> MPICallDetector::detectMPICalls(Function& F, AAResults* AA) {
-  std::vector<CallSite> MPICalls;
+std::vector<CallBase> MPICallDetector::detectMPICalls(Function& F, AAResults* AA) {
+  std::vector<CallBase> MPICalls;
   
   LLVM_DEBUG(dbgs() << "Detecting MPI calls in function: " << F.getName() << "\n");
   
@@ -58,7 +58,7 @@ std::vector<CallSite> MPICallDetector::detectMPICalls(Function& F, AAResults* AA
   MPICalls.insert(MPICalls.end(), DirectCalls.begin(), DirectCalls.end());
   
   // Detect indirect calls with or without alias analysis
-  std::vector<CallSite> IndirectCalls;
+  std::vector<CallBase> IndirectCalls;
   if (AA) {
     IndirectCalls = detectIndirectCallsWithAA(F, AA);
   } else {
@@ -73,8 +73,8 @@ std::vector<CallSite> MPICallDetector::detectMPICalls(Function& F, AAResults* AA
   return MPICalls;
 }
 
-std::vector<CallSite> MPICallDetector::detectDirectCalls(Function& F) {
-  std::vector<CallSite> DirectCalls;
+std::vector<CallBase> MPICallDetector::detectDirectCalls(Function& F) {
+  std::vector<CallBase> DirectCalls;
   
   for (BasicBlock& BB : F) {
     for (Instruction& I : BB) {
@@ -168,12 +168,12 @@ std::vector<CallSite> MPICallDetector::detectDirectCalls(Function& F) {
   return DirectCalls;
 }
 
-std::vector<CallSite> MPICallDetector::detectIndirectCalls(Function& F) {
+std::vector<CallBase> MPICallDetector::detectIndirectCalls(Function& F) {
   return detectIndirectCallsWithAA(F, nullptr);
 }
 
-std::vector<CallSite> MPICallDetector::detectIndirectCallsWithAA(Function& F, AAResults* AA) {
-  std::vector<CallSite> IndirectCalls;
+std::vector<CallBase> MPICallDetector::detectIndirectCallsWithAA(Function& F, AAResults* AA) {
+  std::vector<CallBase> IndirectCalls;
   
   LLVM_DEBUG(dbgs() << "Detecting indirect MPI calls in function: " << F.getName() 
                     << (AA ? " (with alias analysis)" : " (without alias analysis)") << "\n");

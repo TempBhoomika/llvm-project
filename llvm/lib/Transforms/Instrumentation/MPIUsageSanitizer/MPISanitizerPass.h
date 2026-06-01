@@ -101,7 +101,7 @@ private:
   PassPerformanceProfile PerformanceProfile;
   
   /// Detected MPI calls
-  std::vector<CallSite> DetectedCalls;
+  std::vector<CallBase> DetectedCalls;
   
   /// Extracted metadata
   std::vector<MPICallMetadata> ExtractedMetadata;

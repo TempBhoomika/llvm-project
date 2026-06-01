@@ -36,7 +36,7 @@ HookInserter::HookInserter(const HookConfiguration& Config, std::shared_ptr<Conf
 
 HookInserter::~HookInserter() = default;
 
-bool HookInserter::insertHooks(Function& F, const std::vector<CallSite>& Sites) {
+bool HookInserter::insertHooks(Function& F, const std::vector<CallBase>& Sites) {
   if (Sites.empty())
     return false;
     
@@ -56,39 +56,39 @@ bool HookInserter::insertHooks(Function& F, const std::vector<CallSite>& Sites) 
     
     // Insert pre-call hook
     if (Config.EnablePreHooks) {
-      SiteModified |= insertPreCallHook(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertPreCallHook(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert post-call hook
     if (Config.EnablePostHooks) {
-      SiteModified |= insertPostCallHook(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertPostCallHook(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert performance hooks based on configuration
     if (Config.EnablePerformanceHooks && shouldApplyPerformanceMonitoring(Site, Metadata)) {
-      SiteModified |= insertPerformanceHooks(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertPerformanceHooks(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert communication volume hooks for buffer operations
     if (Config.EnableCommunicationVolumeHooks && hasCommunicationBuffers(Metadata)) {
-      SiteModified |= insertCommunicationVolumeHooks(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertCommunicationVolumeHooks(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert communication pattern hooks for point-to-point operations
     if (Config.EnableCommunicationPatternHooks && 
         Metadata.FunctionType == MPIFunctionType::PointToPoint) {
-      SiteModified |= insertCommunicationPatternHooks(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertCommunicationPatternHooks(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert collective timing hooks for collective operations
     if (Config.EnableCollectiveTimingHooks && isCollectiveOperation(Metadata)) {
-      SiteModified |= insertCollectiveTimingHooks(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertCollectiveTimingHooks(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert synchronization hooks for synchronization points
     if (Config.EnableSynchronizationHooks && 
         (isCollectiveOperation(Metadata) || Metadata.FunctionType == MPIFunctionType::PointToPoint)) {
-      SiteModified |= insertSynchronizationHooks(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertSynchronizationHooks(const_cast<CallBase&>(Site), Metadata);
     }
     
     Modified |= SiteModified;
@@ -160,7 +160,7 @@ void HookInserter::createHookDeclarations(Module& M) {
   }
 }
 
-bool HookInserter::insertPreCallHook(CallSite& Site, const MPICallMetadata& Metadata) {
+bool HookInserter::insertPreCallHook(CallBase& Site, const MPICallMetadata& Metadata) {
   if (!Site.CallInst || !CurrentModule) {
     LLVM_DEBUG(dbgs() << "Invalid call site or module for pre-call hook insertion\n");
     return false;
@@ -251,7 +251,7 @@ bool HookInserter::insertPreCallHook(CallSite& Site, const MPICallMetadata& Meta
   return true;
 }
 
-bool HookInserter::insertPostCallHook(CallSite& Site, const MPICallMetadata& Metadata) {
+bool HookInserter::insertPostCallHook(CallBase& Site, const MPICallMetadata& Metadata) {
   if (!Site.CallInst || !CurrentModule) {
     LLVM_DEBUG(dbgs() << "Invalid call site or module for post-call hook insertion\n");
     return false;
@@ -386,7 +386,7 @@ bool HookInserter::insertPostCallHook(CallSite& Site, const MPICallMetadata& Met
   return true;
 }
 
-bool HookInserter::insertPerformanceHooks(CallSite& Site, const MPICallMetadata& Metadata) {
+bool HookInserter::insertPerformanceHooks(CallBase& Site, const MPICallMetadata& Metadata) {
   if (!Site.CallInst || !CurrentModule)
     return false;
     
@@ -428,7 +428,7 @@ bool HookInserter::insertPerformanceHooks(CallSite& Site, const MPICallMetadata&
   return true;
 }
 
-bool HookInserter::insertCommunicationVolumeHooks(CallSite& Site, const MPICallMetadata& Metadata) {
+bool HookInserter::insertCommunicationVolumeHooks(CallBase& Site, const MPICallMetadata& Metadata) {
   if (!Site.CallInst || !CurrentModule || !hasCommunicationBuffers(Metadata))
     return false;
     
@@ -469,7 +469,7 @@ bool HookInserter::insertCommunicationVolumeHooks(CallSite& Site, const MPICallM
   return true;
 }
 
-bool HookInserter::insertCommunicationPatternHooks(CallSite& Site, const MPICallMetadata& Metadata) {
+bool HookInserter::insertCommunicationPatternHooks(CallBase& Site, const MPICallMetadata& Metadata) {
   if (!Site.CallInst || !CurrentModule)
     return false;
     
@@ -529,7 +529,7 @@ bool HookInserter::insertCommunicationPatternHooks(CallSite& Site, const MPICall
   return true;
 }
 
-bool HookInserter::insertSelectivePerformanceHooks(CallSite& Site, const MPICallMetadata& Metadata, 
+bool HookInserter::insertSelectivePerformanceHooks(CallBase& Site, const MPICallMetadata& Metadata, 
                                                    const OptimizationDecision& Decision) {
   if (!Site.CallInst || !CurrentModule || !Decision.EnablePerformanceHooks)
     return false;
@@ -565,7 +565,7 @@ bool HookInserter::insertSelectivePerformanceHooks(CallSite& Site, const MPICall
   return Modified;
 }
 
-bool HookInserter::insertCollectiveTimingHooks(CallSite& Site, const MPICallMetadata& Metadata) {
+bool HookInserter::insertCollectiveTimingHooks(CallBase& Site, const MPICallMetadata& Metadata) {
   if (!Site.CallInst || !CurrentModule || !isCollectiveOperation(Metadata))
     return false;
     
@@ -614,7 +614,7 @@ bool HookInserter::insertCollectiveTimingHooks(CallSite& Site, const MPICallMeta
   return true;
 }
 
-bool HookInserter::insertSynchronizationHooks(CallSite& Site, const MPICallMetadata& Metadata) {
+bool HookInserter::insertSynchronizationHooks(CallBase& Site, const MPICallMetadata& Metadata) {
   if (!Site.CallInst || !CurrentModule)
     return false;
     
@@ -665,7 +665,7 @@ Function* HookInserter::createHookDeclaration(Module& M, StringRef Name, Functio
   return F;
 }
 
-std::vector<Value*> HookInserter::generateHookParameters(const CallSite& Site,
+std::vector<Value*> HookInserter::generateHookParameters(const CallBase& Site,
                                                          const MPICallMetadata& Metadata,
                                                          bool IsPreHook) {
   std::vector<Value*> Args;
@@ -711,7 +711,7 @@ std::vector<Value*> HookInserter::generateHookParameters(const CallSite& Site,
   return Args;
 }
 
-std::vector<Value*> HookInserter::generateEnhancedPreCallParameters(const CallSite& Site,
+std::vector<Value*> HookInserter::generateEnhancedPreCallParameters(const CallBase& Site,
                                                                     const MPICallMetadata& Metadata) {
   std::vector<Value*> Args;
   
@@ -735,7 +735,7 @@ std::vector<Value*> HookInserter::generateEnhancedPreCallParameters(const CallSi
   return Args;
 }
 
-std::vector<Value*> HookInserter::generateEnhancedPostCallParameters(const CallSite& Site,
+std::vector<Value*> HookInserter::generateEnhancedPostCallParameters(const CallBase& Site,
                                                                      const MPICallMetadata& Metadata) {
   std::vector<Value*> Args;
   
@@ -798,7 +798,7 @@ Value* HookInserter::createParameterArray(const MPICallMetadata& Metadata) {
   return Builder->CreateBitCast(ArrayAlloca, VoidPtrPtrTy);
 }
 
-Value* HookInserter::extractSourceLocation(const CallSite& Site) {
+Value* HookInserter::extractSourceLocation(const CallBase& Site) {
   if (!Config.PreserveDebugInfo || !Site.CallInst) {
     return getOrCreateStringConstant("unknown");
   }
@@ -1019,7 +1019,7 @@ Value* HookInserter::createEnhancedParameterArray(const MPICallMetadata& Metadat
   return Builder->CreateBitCast(ArrayAlloca, VoidPtrPtrTy);
 }
 
-Value* HookInserter::extractEnhancedSourceLocation(const CallSite& Site) {
+Value* HookInserter::extractEnhancedSourceLocation(const CallBase& Site) {
   if (!Config.PreserveDebugInfo || !Site.CallInst) {
     return getOrCreateStringConstant("unknown");
   }
@@ -1056,7 +1056,7 @@ Value* HookInserter::extractEnhancedSourceLocation(const CallSite& Site) {
   return getOrCreateStringConstant(Location);
 }
 
-Value* HookInserter::preserveAndExtractReturnValue(const CallSite& Site, const MPICallMetadata& Metadata) {
+Value* HookInserter::preserveAndExtractReturnValue(const CallBase& Site, const MPICallMetadata& Metadata) {
   LLVMContext& Ctx = CurrentModule->getContext();
   Type* VoidPtrTy = PointerType::get(Ctx, 0);
   
@@ -1089,7 +1089,7 @@ Value* HookInserter::preserveAndExtractReturnValue(const CallSite& Site, const M
   }
 }
 
-Value* HookInserter::extractMPIErrorCode(const CallSite& Site, const MPICallMetadata& Metadata) {
+Value* HookInserter::extractMPIErrorCode(const CallBase& Site, const MPICallMetadata& Metadata) {
   LLVMContext& Ctx = CurrentModule->getContext();
   Type* Int32Ty = Type::getInt32Ty(Ctx);
   
@@ -1112,7 +1112,7 @@ Value* HookInserter::extractMPIErrorCode(const CallSite& Site, const MPICallMeta
   }
 }
 
-bool HookInserter::handleExceptionSafety(CallSite& Site) {
+bool HookInserter::handleExceptionSafety(CallBase& Site) {
   // Ensure hook insertion doesn't interfere with exception handling
   if (isa<InvokeInst>(Site.CallInst)) {
     InvokeInst* Invoke = cast<InvokeInst>(Site.CallInst);
@@ -1134,7 +1134,7 @@ bool HookInserter::handleExceptionSafety(CallSite& Site) {
   return true;
 }
 
-bool HookInserter::validateCallingConvention(const CallSite& Site, const MPICallMetadata& Metadata) {
+bool HookInserter::validateCallingConvention(const CallBase& Site, const MPICallMetadata& Metadata) {
   // Validate that the calling convention is compatible with hook insertion
   CallingConv::ID CallConv = Metadata.CallConv;
   
@@ -1189,7 +1189,7 @@ Value* HookInserter::getOrCreateStringConstant(StringRef Str) {
   return GEP;
 }
 
-bool HookInserter::shouldApplyPerformanceMonitoring(const CallSite& Site, const MPICallMetadata& Metadata) {
+bool HookInserter::shouldApplyPerformanceMonitoring(const CallBase& Site, const MPICallMetadata& Metadata) {
   // Check configuration settings
   if (!Config.EnablePerformanceHooks)
     return false;
@@ -1209,7 +1209,7 @@ bool HookInserter::shouldApplyPerformanceMonitoring(const CallSite& Site, const 
   }
 }
 
-Value* HookInserter::calculateCommunicationVolume(const CallSite& Site, const MPICallMetadata& Metadata) {
+Value* HookInserter::calculateCommunicationVolume(const CallBase& Site, const MPICallMetadata& Metadata) {
   LLVMContext& Ctx = CurrentModule->getContext();
   Type* Int64Ty = Type::getInt64Ty(Ctx);
   
@@ -1236,7 +1236,7 @@ Value* HookInserter::calculateCommunicationVolume(const CallSite& Site, const MP
   return Volume;
 }
 
-Value* HookInserter::extractCommunicationPattern(const CallSite& Site, const MPICallMetadata& Metadata) {
+Value* HookInserter::extractCommunicationPattern(const CallBase& Site, const MPICallMetadata& Metadata) {
   // Determine communication pattern based on function type
   StringRef Pattern;
   
@@ -1268,7 +1268,7 @@ Value* HookInserter::extractCommunicationPattern(const CallSite& Site, const MPI
   return getOrCreateStringConstant(Pattern);
 }
 
-Value* HookInserter::createPerformanceConfig(const CallSite& Site, const MPICallMetadata& Metadata) {
+Value* HookInserter::createPerformanceConfig(const CallBase& Site, const MPICallMetadata& Metadata) {
   // Create a configuration value that encodes performance monitoring settings
   LLVMContext& Ctx = CurrentModule->getContext();
   Type* Int32Ty = Type::getInt32Ty(Ctx);
@@ -1285,7 +1285,7 @@ Value* HookInserter::createPerformanceConfig(const CallSite& Site, const MPICall
   return ConstantInt::get(Int32Ty, ConfigValue);
 }
 
-std::pair<CallInst*, CallInst*> HookInserter::insertTimingPair(CallSite& Site, const MPICallMetadata& Metadata) {
+std::pair<CallInst*, CallInst*> HookInserter::insertTimingPair(CallBase& Site, const MPICallMetadata& Metadata) {
   // Get timing hook functions
   Function* PerfBegin = CurrentModule->getFunction(RuntimeInterface::getPerformanceBeginHookName());
   Function* PerfEnd = CurrentModule->getFunction(RuntimeInterface::getPerformanceEndHookName());
@@ -1344,7 +1344,7 @@ void HookInserter::setConfigurationManager(std::shared_ptr<ConfigurationManager>
   LLVM_DEBUG(dbgs() << "Set configuration manager for policy-driven instrumentation\n");
 }
 
-bool HookInserter::shouldInstrumentCallSite(const CallSite& Site) const {
+bool HookInserter::shouldInstrumentCallBase(const CallBase& Site) const {
   if (!ConfigMgr) {
     // No configuration manager - use default behavior
     return true;
@@ -1354,7 +1354,7 @@ bool HookInserter::shouldInstrumentCallSite(const CallSite& Site) const {
   return ConfigMgr->shouldInstrument(Site);
 }
 
-bool HookInserter::insertHooksWithPolicy(Function& F, const std::vector<CallSite>& Sites) {
+bool HookInserter::insertHooksWithPolicy(Function& F, const std::vector<CallBase>& Sites) {
   if (Sites.empty())
     return false;
     
@@ -1367,7 +1367,7 @@ bool HookInserter::insertHooksWithPolicy(Function& F, const std::vector<CallSite
   // Process each call site with policy-driven decisions
   for (auto& Site : Sites) {
     // Check if this call site should be instrumented based on policy
-    if (!shouldInstrumentCallSite(Site)) {
+    if (!shouldInstrumentCallBase(Site)) {
       LLVM_DEBUG(dbgs() << "Skipping instrumentation for " << Site.FunctionName 
                         << " due to policy controls\n");
       continue;
@@ -1390,42 +1390,42 @@ bool HookInserter::insertHooksWithPolicy(Function& F, const std::vector<CallSite
     
     // Insert pre-call hook based on policy
     if (Config.EnablePreHooks && Policy.EnablePreHooks) {
-      SiteModified |= insertPreCallHook(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertPreCallHook(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert post-call hook based on policy
     if (Config.EnablePostHooks && Policy.EnablePostHooks) {
-      SiteModified |= insertPostCallHook(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertPostCallHook(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert performance hooks based on policy
     if (Config.EnablePerformanceHooks && Policy.EnablePerformanceHooks && 
         shouldApplyPerformanceMonitoring(Site, Metadata)) {
-      SiteModified |= insertPerformanceHooks(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertPerformanceHooks(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert communication volume hooks based on policy and operation type
     if (Config.EnableCommunicationVolumeHooks && Policy.EnablePerformanceHooks && 
         hasCommunicationBuffers(Metadata)) {
-      SiteModified |= insertCommunicationVolumeHooks(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertCommunicationVolumeHooks(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert communication pattern hooks for point-to-point operations
     if (Config.EnableCommunicationPatternHooks && Policy.EnablePerformanceHooks && 
         Metadata.FunctionType == MPIFunctionType::PointToPoint) {
-      SiteModified |= insertCommunicationPatternHooks(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertCommunicationPatternHooks(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert collective timing hooks for collective operations
     if (Config.EnableCollectiveTimingHooks && Policy.EnablePerformanceHooks && 
         isCollectiveOperation(Metadata)) {
-      SiteModified |= insertCollectiveTimingHooks(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertCollectiveTimingHooks(const_cast<CallBase&>(Site), Metadata);
     }
     
     // Insert synchronization hooks based on policy
     if (Config.EnableSynchronizationHooks && Policy.EnableDeadlockDetection && 
         (isCollectiveOperation(Metadata) || Metadata.FunctionType == MPIFunctionType::PointToPoint)) {
-      SiteModified |= insertSynchronizationHooks(const_cast<CallSite&>(Site), Metadata);
+      SiteModified |= insertSynchronizationHooks(const_cast<CallBase&>(Site), Metadata);
     }
     
     Modified |= SiteModified;

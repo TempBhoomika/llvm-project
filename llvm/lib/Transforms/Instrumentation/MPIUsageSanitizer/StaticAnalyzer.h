@@ -72,7 +72,7 @@ public:
   void initialize(Function& F, DominatorTree* DT = nullptr, AAResults* AA = nullptr);
   
   /// Analyze data flow for a specific call site
-  bool analyzeCallSite(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeCallBase(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check if a value flows from a constant source
   bool isConstantFlow(Value* V);
@@ -90,10 +90,10 @@ public:
   bool hasAliasingConcerns(Value* V1, Value* V2);
   
   /// Detect if call is in a loop
-  bool isInLoop(const CallSite& Site);
+  bool isInLoop(const CallBase& Site);
   
   /// Analyze control flow complexity around call site
-  bool hasComplexControlFlow(const CallSite& Site);
+  bool hasComplexControlFlow(const CallBase& Site);
 
 private:
   /// Trace value backwards to find its origin
@@ -126,47 +126,47 @@ public:
   void initialize(Function& F, DominatorTree* DT = nullptr);
   
   /// Analyze potential deadlock conditions for a call site
-  bool analyzeDeadlockRisk(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeDeadlockRisk(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check for collective operation deadlock potential
-  bool analyzeCollectiveDeadlock(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeCollectiveDeadlock(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check for point-to-point deadlock potential
-  bool analyzePointToPointDeadlock(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzePointToPointDeadlock(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze communication patterns for circular dependencies
-  bool hasCircularDependency(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool hasCircularDependency(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check for mismatched collective operations
-  bool hasMismatchedCollectives(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool hasMismatchedCollectives(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze blocking vs non-blocking operation mixing
-  bool hasBlockingNonBlockingMix(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool hasBlockingNonBlockingMix(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check for improper synchronization patterns
-  bool hasImproperSynchronization(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool hasImproperSynchronization(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze request handle lifecycle for deadlock potential
-  bool analyzeRequestLifecycle(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeRequestLifecycle(const CallBase& Site, const MPICallMetadata& Metadata);
 
 private:
   /// Detect send-receive cycles that could cause deadlock
-  bool detectSendRecvCycle(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool detectSendRecvCycle(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check for barrier synchronization issues
-  bool hasBarrierSyncIssues(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool hasBarrierSyncIssues(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze communicator usage for deadlock potential
   bool analyzeCommunicatorDeadlock(Value* Comm);
   
   /// Check for rank-dependent control flow that could cause deadlock
-  bool hasRankDependentDeadlock(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool hasRankDependentDeadlock(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze tag usage for potential deadlock
-  bool analyzeTagDeadlock(Value* Tag, const CallSite& Site);
+  bool analyzeTagDeadlock(Value* Tag, const CallBase& Site);
   
   /// Check for wildcard receive deadlock potential
-  bool hasWildcardReceiveDeadlock(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool hasWildcardReceiveDeadlock(const CallBase& Site, const MPICallMetadata& Metadata);
   
   Function* CurrentFunction = nullptr;
   DominatorTree* DT = nullptr;
@@ -198,7 +198,7 @@ public:
   bool analyzeParameters(const MPICallMetadata& Metadata);
   
   /// Check if MPI operation has constant behavior
-  bool hasConstantBehavior(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool hasConstantBehavior(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Detect compile-time constant MPI datatypes
   bool isConstantDatatype(Value* Datatype);
@@ -235,74 +235,74 @@ public:
   void initialize(Function& F, DominatorTree* DT = nullptr, AAResults* AA = nullptr);
   
   /// Perform comprehensive analysis of a call site
-  AnalysisResult analyzeCallSite(const CallSite& Site, const MPICallMetadata& Metadata);
+  AnalysisResult analyzeCallBase(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check if an MPI operation is provably safe and can skip instrumentation
-  bool isProvablySafe(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool isProvablySafe(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check if operation has compile-time constants
-  bool hasCompileTimeConstants(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool hasCompileTimeConstants(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze potential deadlock conditions
-  bool couldCauseDeadlock(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool couldCauseDeadlock(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze potential data race conditions
-  bool hasDataRaceRisk(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool hasDataRaceRisk(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Determine if instrumentation can be optimized for this call
-  bool canOptimizeInstrumentation(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool canOptimizeInstrumentation(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Get recommended optimization level
-  OptimizationLevel getRecommendedOptimizationLevel(const CallSite& Site, 
+  OptimizationLevel getRecommendedOptimizationLevel(const CallBase& Site, 
                                                     const MPICallMetadata& Metadata);
 
   /// Enhanced safety analysis methods for Task 10.2
   
   /// Comprehensive safety pattern analysis
-  bool analyzeSafetyPatterns(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeSafetyPatterns(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze MPI operation ordering for safety
-  bool analyzeOperationOrdering(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeOperationOrdering(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check for safe communicator usage patterns
-  bool analyzeCommunicatorSafety(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeCommunicatorSafety(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze buffer safety (bounds, alignment, etc.)
-  bool analyzeBufferSafety(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeBufferSafety(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Enhanced data race analysis for non-blocking and one-sided operations
-  bool analyzeNonBlockingDataRace(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeNonBlockingDataRace(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze one-sided communication data race potential
-  bool analyzeOneSidedDataRace(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeOneSidedDataRace(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check for request handle data races
-  bool analyzeRequestHandleRace(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeRequestHandleRace(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze window synchronization for data races
-  bool analyzeWindowSynchronization(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeWindowSynchronization(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check for memory consistency issues in MPI operations
-  bool analyzeMemoryConsistency(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeMemoryConsistency(const CallBase& Site, const MPICallMetadata& Metadata);
 
 private:
   /// Analyze compile-time constants (legacy method)
-  bool analyzeConstants(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeConstants(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Perform data flow analysis (legacy method)
-  bool performDataFlowAnalysis(const CallSite& Site);
+  bool performDataFlowAnalysis(const CallBase& Site);
   
   /// Analyze MPI function type for safety characteristics
   bool analyzeFunctionTypeSafety(MPIFunctionType Type);
   
   /// Check for known safe patterns
-  bool matchesSafePattern(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool matchesSafePattern(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze collective operation safety
-  bool analyzeCollectiveSafety(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzeCollectiveSafety(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Analyze point-to-point operation safety
-  bool analyzePointToPointSafety(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool analyzePointToPointSafety(const CallBase& Site, const MPICallMetadata& Metadata);
   
   std::unique_ptr<DataFlowAnalyzer> DFAnalyzer;
   std::unique_ptr<ConstantAnalyzer> ConstAnalyzer;

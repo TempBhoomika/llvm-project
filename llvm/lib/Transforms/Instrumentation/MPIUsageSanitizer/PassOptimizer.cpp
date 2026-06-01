@@ -37,14 +37,14 @@ OptimizedMPICallDetector::OptimizedMPICallDetector(const OptimizationConfig& Con
                     << static_cast<int>(Config.Strategy) << "\n");
 }
 
-std::vector<CallSite> OptimizedMPICallDetector::detectMPICalls(Function& F) {
+std::vector<CallBase> OptimizedMPICallDetector::detectMPICalls(Function& F) {
   if (!Config.EnableCallDetectionOptimization) {
     return MPICallDetector::detectMPICalls(F);
   }
   
   // Check cache first if enabled
   if (FunctionNameCaching) {
-    std::vector<CallSite> CachedResult;
+    std::vector<CallBase> CachedResult;
     if (FunctionCallCache.get(&F, CachedResult)) {
       Stats.CacheHits++;
       LLVM_DEBUG(dbgs() << "Cache hit for function: " << F.getName() << "\n");
@@ -54,7 +54,7 @@ std::vector<CallSite> OptimizedMPICallDetector::detectMPICalls(Function& F) {
   }
   
   // Use optimized detection for hot paths
-  std::vector<CallSite> Result;
+  std::vector<CallBase> Result;
   if (HotPathOptimization && isHotPath(F)) {
     Result = detectMPICallsOptimized(F);
     Stats.HotPathOptimizations++;
@@ -80,8 +80,8 @@ bool OptimizedMPICallDetector::isHotPath(Function& F) const {
     [&F](const HotPath& Path) { return Path.HotFunction == &F; });
 }
 
-std::vector<CallSite> OptimizedMPICallDetector::detectMPICallsOptimized(Function& F) {
-  std::vector<CallSite> MPICalls;
+std::vector<CallBase> OptimizedMPICallDetector::detectMPICallsOptimized(Function& F) {
+  std::vector<CallBase> MPICalls;
   
   // Optimized detection for hot paths - focus on direct calls first
   for (BasicBlock& BB : F) {
@@ -136,7 +136,7 @@ std::vector<CallSite> OptimizedMPICallDetector::detectMPICallsOptimized(Function
   return MPICalls;
 }
 
-std::vector<CallSite> OptimizedMPICallDetector::detectMPICallsStandard(Function& F) {
+std::vector<CallBase> OptimizedMPICallDetector::detectMPICallsStandard(Function& F) {
   // Use standard detection for non-hot paths
   return MPICallDetector::detectMPICalls(F);
 }
@@ -150,7 +150,7 @@ OptimizedMetadataExtractor::OptimizedMetadataExtractor(const OptimizationConfig&
   LLVM_DEBUG(dbgs() << "Created OptimizedMetadataExtractor\n");
 }
 
-MPICallMetadata OptimizedMetadataExtractor::extractMetadata(const CallSite& Site) {
+MPICallMetadata OptimizedMetadataExtractor::extractMetadata(const CallBase& Site) {
   if (!Config.EnableMetadataExtractionOptimization) {
     return MetadataExtractor::extractMetadata(Site);
   }
@@ -181,7 +181,7 @@ MPICallMetadata OptimizedMetadataExtractor::extractMetadata(const CallSite& Site
   return Result;
 }
 
-std::vector<MPICallMetadata> OptimizedMetadataExtractor::extractMetadataBatch(const std::vector<CallSite>& Sites) {
+std::vector<MPICallMetadata> OptimizedMetadataExtractor::extractMetadataBatch(const std::vector<CallBase>& Sites) {
   std::vector<MPICallMetadata> Results;
   Results.reserve(Sites.size());
   
@@ -196,7 +196,7 @@ void OptimizedMetadataExtractor::setHotPaths(const std::vector<HotPath>& NewHotP
   HotPaths = NewHotPaths;
 }
 
-bool OptimizedMetadataExtractor::isHotPath(const CallSite& Site) const {
+bool OptimizedMetadataExtractor::isHotPath(const CallBase& Site) const {
   if (!Site.CallInst) return false;
   
   Function* F = Site.CallInst->getFunction();
@@ -204,7 +204,7 @@ bool OptimizedMetadataExtractor::isHotPath(const CallSite& Site) const {
     [F](const HotPath& Path) { return Path.HotFunction == F; });
 }
 
-MPICallMetadata OptimizedMetadataExtractor::extractMetadataOptimized(const CallSite& Site) {
+MPICallMetadata OptimizedMetadataExtractor::extractMetadataOptimized(const CallBase& Site) {
   MPICallMetadata Metadata;
   
   // Fast path for hot paths - extract only essential metadata
@@ -233,7 +233,7 @@ MPICallMetadata OptimizedMetadataExtractor::extractMetadataOptimized(const CallS
   return Metadata;
 }
 
-MPICallMetadata OptimizedMetadataExtractor::extractMetadataStandard(const CallSite& Site) {
+MPICallMetadata OptimizedMetadataExtractor::extractMetadataStandard(const CallBase& Site) {
   // Use standard extraction for non-hot paths
   return MetadataExtractor::extractMetadata(Site);
 }
@@ -248,7 +248,7 @@ OptimizedHookInserter::OptimizedHookInserter(const HookConfiguration& Config, co
   LLVM_DEBUG(dbgs() << "Created OptimizedHookInserter\n");
 }
 
-bool OptimizedHookInserter::insertHooks(Function& F, const std::vector<CallSite>& Sites) {
+bool OptimizedHookInserter::insertHooks(Function& F, const std::vector<CallBase>& Sites) {
   if (!OptConfig.EnableHookInsertionOptimization) {
     return HookInserter::insertHooks(F, Sites);
   }
@@ -260,7 +260,7 @@ bool OptimizedHookInserter::insertHooks(Function& F, const std::vector<CallSite>
   }
 }
 
-bool OptimizedHookInserter::insertHooksBatch(const std::vector<std::pair<Function*, std::vector<CallSite>>>& FunctionSites) {
+bool OptimizedHookInserter::insertHooksBatch(const std::vector<std::pair<Function*, std::vector<CallBase>>>& FunctionSites) {
   bool Modified = false;
   
   for (const auto& FuncSites : FunctionSites) {
@@ -283,7 +283,7 @@ bool OptimizedHookInserter::isHotPath(Function& F) const {
     [&F](const HotPath& Path) { return Path.HotFunction == &F; });
 }
 
-bool OptimizedHookInserter::insertHooksOptimized(Function& F, const std::vector<CallSite>& Sites) {
+bool OptimizedHookInserter::insertHooksOptimized(Function& F, const std::vector<CallBase>& Sites) {
   if (Sites.empty()) return false;
   
   bool Modified = false;
@@ -302,7 +302,7 @@ bool OptimizedHookInserter::insertHooksOptimized(Function& F, const std::vector<
       if (Config.EnablePreHooks) {
         MetadataExtractor Extractor;
         MPICallMetadata Metadata = Extractor.extractMetadata(Site);
-        Modified |= insertPreCallHook(const_cast<CallSite&>(Site), Metadata);
+        Modified |= insertPreCallHook(const_cast<CallBase&>(Site), Metadata);
       }
       Stats.MinimalTransformations++;
     } else {
@@ -314,7 +314,7 @@ bool OptimizedHookInserter::insertHooksOptimized(Function& F, const std::vector<
   return Modified;
 }
 
-bool OptimizedHookInserter::insertHooksStandard(Function& F, const std::vector<CallSite>& Sites) {
+bool OptimizedHookInserter::insertHooksStandard(Function& F, const std::vector<CallBase>& Sites) {
   return HookInserter::insertHooks(F, Sites);
 }
 

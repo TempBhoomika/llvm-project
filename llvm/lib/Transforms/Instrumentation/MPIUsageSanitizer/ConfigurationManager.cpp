@@ -441,11 +441,11 @@ void ConfigurationManager::mergeConfigurations() {
   }
 }
 
-bool ConfigurationManager::shouldInstrument(const CallSite& Site) const {
+bool ConfigurationManager::shouldInstrument(const CallBase& Site) const {
   return shouldInstrument(Site, nullptr);
 }
 
-bool ConfigurationManager::shouldInstrument(const CallSite& Site, const AnalysisResult* Analysis) const {
+bool ConfigurationManager::shouldInstrument(const CallBase& Site, const AnalysisResult* Analysis) const {
   if (!Initialized) {
     return true; // Default to instrumenting everything
   }
@@ -528,7 +528,7 @@ bool ConfigurationManager::shouldInstrumentCategory(MPIFunctionType Type) const 
   return Config.EnabledTypes.find(Type) != Config.EnabledTypes.end();
 }
 
-bool ConfigurationManager::applyInstrumentationModeFilter(const CallSite& Site, MPIFunctionType Type) const {
+bool ConfigurationManager::applyInstrumentationModeFilter(const CallBase& Site, MPIFunctionType Type) const {
   if (!Initialized) {
     return true;
   }
@@ -578,7 +578,7 @@ bool ConfigurationManager::applyInstrumentationModeFilter(const CallSite& Site, 
   return true;
 }
 
-bool ConfigurationManager::evaluatePolicyControls(const CallSite& Site, const InstrumentationPolicy& Policy) const {
+bool ConfigurationManager::evaluatePolicyControls(const CallBase& Site, const InstrumentationPolicy& Policy) const {
   // A call site should be instrumented if any hook type is enabled
   bool ShouldInstrument = Policy.EnablePreHooks || 
                          Policy.EnablePostHooks || 

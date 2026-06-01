@@ -100,10 +100,10 @@ class ParameterAnalyzer {
 public:
   ParameterAnalyzer(MPIFunctionDatabase* DB) : FunctionDB(DB) {}
   
-  std::vector<ParameterInfo> analyzeCall(const CallSite& Site);
+  std::vector<ParameterInfo> analyzeCall(const CallBase& Site);
 
 private:
-  ParameterRole analyzeParameterByPosition(const CallSite& Site, unsigned Index, Type* ParamType);
+  ParameterRole analyzeParameterByPosition(const CallBase& Site, unsigned Index, Type* ParamType);
   MPIFunctionDatabase* FunctionDB;
 };
 
@@ -147,49 +147,49 @@ public:
   void setFunctionDatabase(MPIFunctionDatabase* DB);
   
   /// Extract complete metadata from an MPI call site
-  MPICallMetadata extractMetadata(const CallSite& Site);
+  MPICallMetadata extractMetadata(const CallBase& Site);
   
   /// Extract communicator parameter from MPI call
-  Value* extractCommunicator(const CallSite& Site);
+  Value* extractCommunicator(const CallBase& Site);
   
   /// Extract buffer information (pointer, size, type) from MPI call
-  std::vector<Value*> extractBufferInfo(const CallSite& Site);
+  std::vector<Value*> extractBufferInfo(const CallBase& Site);
   
   /// Extract request handle from MPI call
-  Value* extractRequestHandle(const CallSite& Site);
+  Value* extractRequestHandle(const CallBase& Site);
   
   /// Extract status object from MPI call
-  Value* extractStatus(const CallSite& Site);
+  Value* extractStatus(const CallBase& Site);
   
   // Fortran-specific extraction methods
   /// Extract Fortran array descriptor information
-  std::vector<Value*> extractFortranArrayDescriptors(const CallSite& Site);
+  std::vector<Value*> extractFortranArrayDescriptors(const CallBase& Site);
   
   /// Extract Fortran character string length parameters
-  std::vector<Value*> extractCharacterLengths(const CallSite& Site);
+  std::vector<Value*> extractCharacterLengths(const CallBase& Site);
   
   /// Extract Fortran optional parameter presence flags
-  std::vector<Value*> extractOptionalPresenceFlags(const CallSite& Site);
+  std::vector<Value*> extractOptionalPresenceFlags(const CallBase& Site);
   
   /// Extract Fortran derived type information
-  std::vector<Value*> extractDerivedTypeInfo(const CallSite& Site);
+  std::vector<Value*> extractDerivedTypeInfo(const CallBase& Site);
   
   /// Detect Fortran parameter passing convention
-  bool isFortranParameterPassing(const CallSite& Site);
+  bool isFortranParameterPassing(const CallBase& Site);
   
   /// Handle Fortran pass-by-reference semantics
-  std::vector<Value*> handleFortranPassByReference(const CallSite& Site);
+  std::vector<Value*> handleFortranPassByReference(const CallBase& Site);
 
 private:
   /// Analyze parameters based on function signature
-  std::vector<ParameterInfo> analyzeParameters(const CallSite& Site);
+  std::vector<ParameterInfo> analyzeParameters(const CallBase& Site);
   
   /// Determine parameter role based on position and type
-  ParameterRole determineParameterRole(const CallSite& Site, unsigned Index, 
+  ParameterRole determineParameterRole(const CallBase& Site, unsigned Index, 
                                        Type* ParamType);
   
   /// Extract named parameters for easier access
-  std::map<std::string, Value*> extractNamedParameters(const CallSite& Site,
+  std::map<std::string, Value*> extractNamedParameters(const CallBase& Site,
                                                        const std::vector<ParameterInfo>& Infos);
   
   std::unique_ptr<ParameterAnalyzer> ParamAnalyzer;

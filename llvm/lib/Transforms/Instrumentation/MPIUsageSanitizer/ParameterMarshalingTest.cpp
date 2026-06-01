@@ -61,7 +61,7 @@ public:
   MockParameterMarshaler(LLVMContext& Context) : Context(Context) {}
   
   /// Marshal parameters for runtime library call
-  std::vector<MarshaledParameter> marshalParameters(const CallSite& Site, 
+  std::vector<MarshaledParameter> marshalParameters(const CallBase& Site, 
                                                     const MPICallMetadata& Metadata) {
     std::vector<MarshaledParameter> Marshaled;
     
@@ -101,7 +101,7 @@ public:
   
   /// Unmarshal parameters from runtime library call
   bool unmarshalParameters(const std::vector<MarshaledParameter>& Marshaled,
-                           CallSite& Site) {
+                           CallBase& Site) {
     // Verify that output parameters can be properly unmarshaled
     for (const auto& MP : Marshaled) {
       if (MP.IsOutput) {
@@ -234,7 +234,7 @@ TEST_F(ParameterMarshalingTest, BasicParameterMarshaling) {
   CallInst* SendCall = createMPICall("MPI_Send", SendFT, Args);
   
   // Create call site
-  CallSite Site;
+  CallBase Site;
   Site.FunctionName = "MPI_Send";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = SendCall;
@@ -282,7 +282,7 @@ TEST_F(ParameterMarshalingTest, OutputParameterMarshaling) {
   CallInst* RecvCall = createMPICall("MPI_Recv", RecvFT, Args);
   
   // Create call site
-  CallSite Site;
+  CallBase Site;
   Site.FunctionName = "MPI_Recv";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = RecvCall;
@@ -328,7 +328,7 @@ TEST_F(ParameterMarshalingTest, CollectiveParameterMarshaling) {
   CallInst* BcastCall = createMPICall("MPI_Bcast", BcastFT, Args);
   
   // Create call site
-  CallSite Site;
+  CallBase Site;
   Site.FunctionName = "MPI_Bcast";
   Site.Type = MPIFunctionType::Collective;
   Site.Inst = BcastCall;
@@ -371,7 +371,7 @@ TEST_F(ParameterMarshalingTest, NonBlockingParameterMarshaling) {
   CallInst* IsendCall = createMPICall("MPI_Isend", IsendFT, Args);
   
   // Create call site
-  CallSite Site;
+  CallBase Site;
   Site.FunctionName = "MPI_Isend";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = IsendCall;
@@ -414,7 +414,7 @@ TEST_F(ParameterMarshalingTest, ComplexParameterTypes) {
   CallInst* ComplexCall = createMPICall("MPI_Complex", ComplexFT, Args);
   
   // Create call site
-  CallSite Site;
+  CallBase Site;
   Site.FunctionName = "MPI_Complex";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = ComplexCall;
@@ -456,7 +456,7 @@ TEST_F(ParameterMarshalingTest, VariadicParameterMarshaling) {
   CallInst* VariadicCall = createMPICall("MPI_Variadic", VariadicFT, Args);
   
   // Create call site
-  CallSite Site;
+  CallBase Site;
   Site.FunctionName = "MPI_Variadic";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = VariadicCall;

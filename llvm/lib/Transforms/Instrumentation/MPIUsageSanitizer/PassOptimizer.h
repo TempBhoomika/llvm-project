@@ -100,7 +100,7 @@ public:
   ~OptimizedMPICallDetector() = default;
   
   /// Optimized MPI call detection with caching
-  std::vector<CallSite> detectMPICalls(Function& F) override;
+  std::vector<CallBase> detectMPICalls(Function& F) override;
   
   /// Set hot paths for optimization targeting
   void setHotPaths(const std::vector<HotPath>& HotPaths);
@@ -133,15 +133,15 @@ private:
   /// Caches for expensive operations
   OptimizationCache<std::string, bool> FunctionNameCache;
   OptimizationCache<std::string, MPIFunctionType> SignatureCache;
-  OptimizationCache<Function*, std::vector<CallSite>> FunctionCallCache;
+  OptimizationCache<Function*, std::vector<CallBase>> FunctionCallCache;
   
   /// Optimization statistics
   mutable OptimizationStats Stats;
   
   /// Optimized helper methods
   bool isHotPath(Function& F) const;
-  std::vector<CallSite> detectMPICallsOptimized(Function& F);
-  std::vector<CallSite> detectMPICallsStandard(Function& F);
+  std::vector<CallBase> detectMPICallsOptimized(Function& F);
+  std::vector<CallBase> detectMPICallsStandard(Function& F);
 };
 
 /// Optimized metadata extractor with reduced overhead
@@ -151,10 +151,10 @@ public:
   ~OptimizedMetadataExtractor() = default;
   
   /// Optimized metadata extraction
-  MPICallMetadata extractMetadata(const CallSite& Site) override;
+  MPICallMetadata extractMetadata(const CallBase& Site) override;
   
   /// Batch metadata extraction for multiple call sites
-  std::vector<MPICallMetadata> extractMetadataBatch(const std::vector<CallSite>& Sites);
+  std::vector<MPICallMetadata> extractMetadataBatch(const std::vector<CallBase>& Sites);
   
   /// Set hot paths for optimization targeting
   void setHotPaths(const std::vector<HotPath>& HotPaths);
@@ -189,9 +189,9 @@ private:
   mutable OptimizationStats Stats;
   
   /// Optimized helper methods
-  bool isHotPath(const CallSite& Site) const;
-  MPICallMetadata extractMetadataOptimized(const CallSite& Site);
-  MPICallMetadata extractMetadataStandard(const CallSite& Site);
+  bool isHotPath(const CallBase& Site) const;
+  MPICallMetadata extractMetadataOptimized(const CallBase& Site);
+  MPICallMetadata extractMetadataStandard(const CallBase& Site);
 };
 
 /// Optimized hook inserter with minimal IR transformation overhead
@@ -201,10 +201,10 @@ public:
   ~OptimizedHookInserter() = default;
   
   /// Optimized hook insertion
-  bool insertHooks(Function& F, const std::vector<CallSite>& Sites) override;
+  bool insertHooks(Function& F, const std::vector<CallBase>& Sites) override;
   
   /// Batch hook insertion for multiple functions
-  bool insertHooksBatch(const std::vector<std::pair<Function*, std::vector<CallSite>>>& FunctionSites);
+  bool insertHooksBatch(const std::vector<std::pair<Function*, std::vector<CallBase>>>& FunctionSites);
   
   /// Set hot paths for optimization targeting
   void setHotPaths(const std::vector<HotPath>& HotPaths);
@@ -243,8 +243,8 @@ private:
   
   /// Optimized helper methods
   bool isHotPath(Function& F) const;
-  bool insertHooksOptimized(Function& F, const std::vector<CallSite>& Sites);
-  bool insertHooksStandard(Function& F, const std::vector<CallSite>& Sites);
+  bool insertHooksOptimized(Function& F, const std::vector<CallBase>& Sites);
+  bool insertHooksStandard(Function& F, const std::vector<CallBase>& Sites);
   Value* getOrCreateOptimizedStringConstant(StringRef Str);
   Function* getOrCreateOptimizedHookFunction(Module& M, StringRef Name, FunctionType* Type);
 };

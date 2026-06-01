@@ -118,7 +118,7 @@ ConfigMgr.setFunctionPolicy("MPI_Bcast", Policy);
 
 ```cpp
 // Check instrumentation with analysis results
-CallSite Site = /* ... */;
+CallBase Site = /* ... */;
 AnalysisResult Analysis = /* ... */;
 
 if (ConfigMgr.shouldInstrument(Site, &Analysis)) {
@@ -155,7 +155,7 @@ public:
         for (auto& F : M) {
             for (auto& Site : detectMPICalls(F)) {
                 if (ConfigMgr->shouldInstrument(Site)) {
-                    instrumentCallSite(Site);
+                    instrumentCallBase(Site);
                 }
             }
         }

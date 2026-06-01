@@ -121,12 +121,12 @@ TEST_F(MPICallDetectorTest, DetectsBasicMPICalls) {
   auto M = createTestModule();
   MPICallDetector Detector;
   
-  auto CallSites = Detector.detectMPICalls(*M->getFunction("test_function"));
+  auto CallBases = Detector.detectMPICalls(*M->getFunction("test_function"));
   
-  EXPECT_EQ(CallSites.size(), 3);
-  EXPECT_EQ(CallSites[0].FunctionName, "MPI_Send");
-  EXPECT_EQ(CallSites[1].FunctionName, "MPI_Recv");
-  EXPECT_EQ(CallSites[2].FunctionName, "MPI_Finalize");
+  EXPECT_EQ(CallBases.size(), 3);
+  EXPECT_EQ(CallBases[0].FunctionName, "MPI_Send");
+  EXPECT_EQ(CallBases[1].FunctionName, "MPI_Recv");
+  EXPECT_EQ(CallBases[2].FunctionName, "MPI_Finalize");
 }
 ```
 

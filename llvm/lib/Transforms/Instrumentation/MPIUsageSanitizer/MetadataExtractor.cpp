@@ -26,7 +26,7 @@ using namespace llvm;
 #define DEBUG_TYPE "mpi-metadata-extractor"
 
 /// Implementation of ParameterAnalyzer methods
-std::vector<ParameterInfo> ParameterAnalyzer::analyzeCall(const CallSite& Site) {
+std::vector<ParameterInfo> ParameterAnalyzer::analyzeCall(const CallBase& Site) {
   std::vector<ParameterInfo> Infos;
   
   if (!Site.CallInst) {
@@ -69,7 +69,7 @@ std::vector<ParameterInfo> ParameterAnalyzer::analyzeCall(const CallSite& Site) 
   return Infos;
 }
 
-ParameterRole ParameterAnalyzer::analyzeParameterByPosition(const CallSite& Site, unsigned Index, Type* ParamType) {
+ParameterRole ParameterAnalyzer::analyzeParameterByPosition(const CallBase& Site, unsigned Index, Type* ParamType) {
   // Analyze based on function name patterns and parameter position
   StringRef FuncName = Site.FunctionName;
   
@@ -286,7 +286,7 @@ void MetadataExtractor::setFunctionDatabase(MPIFunctionDatabase* DB) {
   ParamAnalyzer = std::make_unique<ParameterAnalyzer>(DB);
 }
 
-MPICallMetadata MetadataExtractor::extractMetadata(const CallSite& Site) {
+MPICallMetadata MetadataExtractor::extractMetadata(const CallBase& Site) {
   MPICallMetadata Metadata;
   
   if (!Site.CallInst) {
@@ -326,7 +326,7 @@ MPICallMetadata MetadataExtractor::extractMetadata(const CallSite& Site) {
   return Metadata;
 }
 
-Value* MetadataExtractor::extractCommunicator(const CallSite& Site) {
+Value* MetadataExtractor::extractCommunicator(const CallBase& Site) {
   if (auto* CI = dyn_cast<CallInst>(Site.CallInst)) {
     // Use parameter analysis to find communicator
     if (ParamAnalyzer) {
@@ -441,7 +441,7 @@ Value* MetadataExtractor::extractCommunicator(const CallSite& Site) {
   return nullptr;
 }
 
-std::vector<Value*> MetadataExtractor::extractBufferInfo(const CallSite& Site) {
+std::vector<Value*> MetadataExtractor::extractBufferInfo(const CallBase& Site) {
   std::vector<Value*> BufferInfo;
   
   if (auto* CI = dyn_cast<CallInst>(Site.CallInst)) {
@@ -618,7 +618,7 @@ std::vector<Value*> MetadataExtractor::extractBufferInfo(const CallSite& Site) {
   return BufferInfo;
 }
 
-Value* MetadataExtractor::extractRequestHandle(const CallSite& Site) {
+Value* MetadataExtractor::extractRequestHandle(const CallBase& Site) {
   if (auto* CI = dyn_cast<CallInst>(Site.CallInst)) {
     // Use parameter analysis to find request handle
     if (ParamAnalyzer) {
@@ -806,7 +806,7 @@ Value* MetadataExtractor::extractRequestHandle(const CallSite& Site) {
   return nullptr;
 }
 
-Value* MetadataExtractor::extractStatus(const CallSite& Site) {
+Value* MetadataExtractor::extractStatus(const CallBase& Site) {
   if (auto* CI = dyn_cast<CallInst>(Site.CallInst)) {
     // Use parameter analysis to find status object
     if (ParamAnalyzer) {
@@ -845,7 +845,7 @@ Value* MetadataExtractor::extractStatus(const CallSite& Site) {
   return nullptr;
 }
 
-std::vector<ParameterInfo> MetadataExtractor::analyzeParameters(const CallSite& Site) {
+std::vector<ParameterInfo> MetadataExtractor::analyzeParameters(const CallBase& Site) {
   std::vector<ParameterInfo> Infos;
   
   if (auto* CI = dyn_cast<CallInst>(Site.CallInst)) {
@@ -866,7 +866,7 @@ std::vector<ParameterInfo> MetadataExtractor::analyzeParameters(const CallSite& 
   return Infos;
 }
 
-ParameterRole MetadataExtractor::determineParameterRole(const CallSite& Site, 
+ParameterRole MetadataExtractor::determineParameterRole(const CallBase& Site, 
                                                         unsigned Index, 
                                                         Type* ParamType) {
   // Use TypeAnalyzer if available
@@ -945,7 +945,7 @@ ParameterRole MetadataExtractor::determineParameterRole(const CallSite& Site,
 }
 
 std::map<std::string, Value*> 
-MetadataExtractor::extractNamedParameters(const CallSite& Site,
+MetadataExtractor::extractNamedParameters(const CallBase& Site,
                                           const std::vector<ParameterInfo>& Infos) {
   std::map<std::string, Value*> NamedParams;
   
@@ -1067,7 +1067,7 @@ ParameterRole TypeAnalyzer::analyzeFortranParameter(Type* T, unsigned Index, Str
 // Fortran-specific Metadata Extraction Implementation
 //===----------------------------------------------------------------------===//
 
-std::vector<Value*> MetadataExtractor::extractFortranArrayDescriptors(const CallSite& Site) {
+std::vector<Value*> MetadataExtractor::extractFortranArrayDescriptors(const CallBase& Site) {
   std::vector<Value*> Descriptors;
   
   if (auto* CI = dyn_cast<CallInst>(Site.CallInst)) {
@@ -1117,7 +1117,7 @@ std::vector<Value*> MetadataExtractor::extractFortranArrayDescriptors(const Call
   return Descriptors;
 }
 
-std::vector<Value*> MetadataExtractor::extractCharacterLengths(const CallSite& Site) {
+std::vector<Value*> MetadataExtractor::extractCharacterLengths(const CallBase& Site) {
   std::vector<Value*> Lengths;
   
   if (auto* CI = dyn_cast<CallInst>(Site.CallInst)) {
@@ -1178,7 +1178,7 @@ std::vector<Value*> MetadataExtractor::extractCharacterLengths(const CallSite& S
   return Lengths;
 }
 
-std::vector<Value*> MetadataExtractor::extractOptionalPresenceFlags(const CallSite& Site) {
+std::vector<Value*> MetadataExtractor::extractOptionalPresenceFlags(const CallBase& Site) {
   std::vector<Value*> Flags;
   
   if (auto* CI = dyn_cast<CallInst>(Site.CallInst)) {
@@ -1228,7 +1228,7 @@ std::vector<Value*> MetadataExtractor::extractOptionalPresenceFlags(const CallSi
   return Flags;
 }
 
-std::vector<Value*> MetadataExtractor::extractDerivedTypeInfo(const CallSite& Site) {
+std::vector<Value*> MetadataExtractor::extractDerivedTypeInfo(const CallBase& Site) {
   std::vector<Value*> DerivedTypes;
   
   if (auto* CI = dyn_cast<CallInst>(Site.CallInst)) {
@@ -1276,7 +1276,7 @@ std::vector<Value*> MetadataExtractor::extractDerivedTypeInfo(const CallSite& Si
   return DerivedTypes;
 }
 
-bool MetadataExtractor::isFortranParameterPassing(const CallSite& Site) {
+bool MetadataExtractor::isFortranParameterPassing(const CallBase& Site) {
   if (!Site.CallInst) return false;
   
   StringRef FuncName = Site.FunctionName;
@@ -1319,7 +1319,7 @@ bool MetadataExtractor::isFortranParameterPassing(const CallSite& Site) {
   return false;
 }
 
-std::vector<Value*> MetadataExtractor::handleFortranPassByReference(const CallSite& Site) {
+std::vector<Value*> MetadataExtractor::handleFortranPassByReference(const CallBase& Site) {
   std::vector<Value*> References;
   
   if (auto* CI = dyn_cast<CallInst>(Site.CallInst)) {

@@ -32,7 +32,7 @@ namespace llvm {
 class Function;
 class CallInst;
 class InvokeInst;
-struct CallSite;
+struct CallBase;
 
 /// Error severity levels for MPI sanitizer diagnostics
 enum class ErrorLevel {
@@ -223,7 +223,7 @@ public:
                    const Instruction* Inst, const StringMap<std::string>& Context);
   
   /// Report MPI-specific errors with call site information
-  void reportMPIError(ErrorLevel Level, StringRef Message, const CallSite& Site);
+  void reportMPIError(ErrorLevel Level, StringRef Message, const CallBase& Site);
   
   /// Report configuration errors
   void reportConfigError(ErrorLevel Level, StringRef Message, StringRef ConfigKey = "");

@@ -26,7 +26,7 @@
 
 namespace llvm {
 
-struct CallSite;
+struct CallBase;
 struct AnalysisResult;
 
 /// Instrumentation Policy for different MPI operation categories
@@ -135,10 +135,10 @@ public:
   bool initialize();
   
   /// Check if a specific MPI call site should be instrumented
-  bool shouldInstrument(const CallSite& Site) const;
+  bool shouldInstrument(const CallBase& Site) const;
   
   /// Enhanced decision logic for call site instrumentation with comprehensive policy evaluation
-  bool shouldInstrument(const CallSite& Site, const struct AnalysisResult* Analysis) const;
+  bool shouldInstrument(const CallBase& Site, const struct AnalysisResult* Analysis) const;
   
   /// Check if a specific MPI function should be instrumented
   bool shouldInstrument(StringRef FunctionName) const;
@@ -150,10 +150,10 @@ public:
   bool shouldInstrumentCategory(MPIFunctionType Type) const;
   
   /// Apply instrumentation mode filtering (lightweight vs full)
-  bool applyInstrumentationModeFilter(const CallSite& Site, MPIFunctionType Type) const;
+  bool applyInstrumentationModeFilter(const CallBase& Site, MPIFunctionType Type) const;
   
   /// Evaluate fine-grained policy controls for a call site
-  bool evaluatePolicyControls(const CallSite& Site, const InstrumentationPolicy& Policy) const;
+  bool evaluatePolicyControls(const CallBase& Site, const InstrumentationPolicy& Policy) const;
   
   /// Get instrumentation policy for a specific function
   InstrumentationPolicy getInstrumentationPolicy(StringRef FunctionName) const;

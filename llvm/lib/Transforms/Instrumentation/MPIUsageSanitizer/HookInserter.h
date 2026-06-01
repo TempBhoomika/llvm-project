@@ -60,35 +60,35 @@ public:
   ~HookInserter();
   
   /// Insert hooks for all MPI calls in a function
-  bool insertHooks(Function& F, const std::vector<CallSite>& Sites);
+  bool insertHooks(Function& F, const std::vector<CallBase>& Sites);
   
   /// Create declarations for all required hook functions in the module
   void createHookDeclarations(Module& M);
   
   /// Insert pre-call hook before an MPI function call
-  bool insertPreCallHook(CallSite& Site, const MPICallMetadata& Metadata);
+  bool insertPreCallHook(CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Insert post-call hook after an MPI function call
-  bool insertPostCallHook(CallSite& Site, const MPICallMetadata& Metadata);
+  bool insertPostCallHook(CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Insert performance monitoring hooks around MPI calls
-  bool insertPerformanceHooks(CallSite& Site, const MPICallMetadata& Metadata);
+  bool insertPerformanceHooks(CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Insert communication volume monitoring hooks
-  bool insertCommunicationVolumeHooks(CallSite& Site, const MPICallMetadata& Metadata);
+  bool insertCommunicationVolumeHooks(CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Insert communication pattern analysis hooks
-  bool insertCommunicationPatternHooks(CallSite& Site, const MPICallMetadata& Metadata);
+  bool insertCommunicationPatternHooks(CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Insert selective performance instrumentation based on optimization decisions
-  bool insertSelectivePerformanceHooks(CallSite& Site, const MPICallMetadata& Metadata, 
+  bool insertSelectivePerformanceHooks(CallBase& Site, const MPICallMetadata& Metadata, 
                                       const struct OptimizationDecision& Decision);
   
   /// Insert timing hooks for MPI collective operations
-  bool insertCollectiveTimingHooks(CallSite& Site, const MPICallMetadata& Metadata);
+  bool insertCollectiveTimingHooks(CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Insert synchronization point monitoring hooks
-  bool insertSynchronizationHooks(CallSite& Site, const MPICallMetadata& Metadata);
+  bool insertSynchronizationHooks(CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Set the current module context
   void setModule(Module* M) { CurrentModule = M; }
@@ -103,10 +103,10 @@ public:
   void setConfigurationManager(std::shared_ptr<class ConfigurationManager> ConfigMgr);
   
   /// Check if a call site should be instrumented based on policy
-  bool shouldInstrumentCallSite(const CallSite& Site) const;
+  bool shouldInstrumentCallBase(const CallBase& Site) const;
   
   /// Insert hooks with policy-driven selective instrumentation
-  bool insertHooksWithPolicy(Function& F, const std::vector<CallSite>& Sites);
+  bool insertHooksWithPolicy(Function& F, const std::vector<CallBase>& Sites);
 
 private:
   /// Create function declaration for a hook function
@@ -114,16 +114,16 @@ private:
                                   FunctionType* Type);
   
   /// Generate parameters for hook function calls
-  std::vector<Value*> generateHookParameters(const CallSite& Site,
+  std::vector<Value*> generateHookParameters(const CallBase& Site,
                                              const MPICallMetadata& Metadata,
                                              bool IsPreHook);
   
   /// Generate enhanced parameters for pre-call hooks with comprehensive metadata
-  std::vector<Value*> generateEnhancedPreCallParameters(const CallSite& Site,
+  std::vector<Value*> generateEnhancedPreCallParameters(const CallBase& Site,
                                                         const MPICallMetadata& Metadata);
   
   /// Generate enhanced parameters for post-call hooks with return value preservation
-  std::vector<Value*> generateEnhancedPostCallParameters(const CallSite& Site,
+  std::vector<Value*> generateEnhancedPostCallParameters(const CallBase& Site,
                                                          const MPICallMetadata& Metadata);
   
   /// Create parameter array for pre-call hooks
@@ -133,22 +133,22 @@ private:
   Value* createEnhancedParameterArray(const MPICallMetadata& Metadata);
   
   /// Preserve original call's return value and side effects
-  Value* preserveReturnValue(CallSite& Site, Value* HookCall);
+  Value* preserveReturnValue(CallBase& Site, Value* HookCall);
   
   /// Preserve and extract return value with proper type handling
-  Value* preserveAndExtractReturnValue(const CallSite& Site, const MPICallMetadata& Metadata);
+  Value* preserveAndExtractReturnValue(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Extract MPI-specific error code from return value
-  Value* extractMPIErrorCode(const CallSite& Site, const MPICallMetadata& Metadata);
+  Value* extractMPIErrorCode(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Get or create string constant for function names
   Value* getOrCreateStringConstant(StringRef Str);
   
   /// Extract source location information from debug metadata
-  Value* extractSourceLocation(const CallSite& Site);
+  Value* extractSourceLocation(const CallBase& Site);
   
   /// Extract enhanced source location with function context
-  Value* extractEnhancedSourceLocation(const CallSite& Site);
+  Value* extractEnhancedSourceLocation(const CallBase& Site);
   
   /// Get MPI operation type string for performance monitoring
   StringRef getMPIOperationType(MPIFunctionType Type);
@@ -157,25 +157,25 @@ private:
   bool validateHookSignatures(Module& M);
   
   /// Handle exception safety for invoke instructions
-  bool handleExceptionSafety(CallSite& Site);
+  bool handleExceptionSafety(CallBase& Site);
   
   /// Validate calling convention compatibility
-  bool validateCallingConvention(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool validateCallingConvention(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Determine if performance monitoring should be applied to this call site
-  bool shouldApplyPerformanceMonitoring(const CallSite& Site, const MPICallMetadata& Metadata);
+  bool shouldApplyPerformanceMonitoring(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Calculate communication volume for buffer-based operations
-  Value* calculateCommunicationVolume(const CallSite& Site, const MPICallMetadata& Metadata);
+  Value* calculateCommunicationVolume(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Extract communication pattern information
-  Value* extractCommunicationPattern(const CallSite& Site, const MPICallMetadata& Metadata);
+  Value* extractCommunicationPattern(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Create performance monitoring configuration value
-  Value* createPerformanceConfig(const CallSite& Site, const MPICallMetadata& Metadata);
+  Value* createPerformanceConfig(const CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Insert timing begin/end pair around MPI operation
-  std::pair<CallInst*, CallInst*> insertTimingPair(CallSite& Site, const MPICallMetadata& Metadata);
+  std::pair<CallInst*, CallInst*> insertTimingPair(CallBase& Site, const MPICallMetadata& Metadata);
   
   /// Check if operation is collective and requires synchronization monitoring
   bool isCollectiveOperation(const MPICallMetadata& Metadata);

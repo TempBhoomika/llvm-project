@@ -15,7 +15,7 @@
 #include "MPICallDetector.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instruction.h"
-#include "llvm/IR/CallSite.h"
+#include "llvm/IR/CallBase.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/Timer.h"
@@ -200,7 +200,7 @@ void ErrorHandler::reportError(ErrorLevel Level, ErrorCategory Category, StringR
   reportToDiagnosticEngine(Errors.back());
 }
 
-void ErrorHandler::reportMPIError(ErrorLevel Level, StringRef Message, const CallSite& Site) {
+void ErrorHandler::reportMPIError(ErrorLevel Level, StringRef Message, const CallBase& Site) {
   MPIErrorInfo Error = createMPIErrorInfo(Level, ErrorCategory::CallDetection, Message);
   
   // Add MPI-specific context

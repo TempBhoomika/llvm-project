@@ -296,7 +296,7 @@ TEST_F(RuntimeLibraryIntegrationTest, HookInsertionAndExecution) {
   createRuntimeHooks();
   
   // Create call site for instrumentation
-  CallSite Site;
+  CallBase Site;
   Site.FunctionName = "MPI_Send";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = &MPIFunc->getEntryBlock().front();
@@ -349,20 +349,20 @@ TEST_F(RuntimeLibraryIntegrationTest, ParameterMarshalingValidation) {
   Function* WtimeFunc = createMPIFunction("MPI_Wtime", DoubleTy, {});
   
   // Validate that hook insertion can handle different parameter types
-  CallSite SendSite;
+  CallBase SendSite;
   SendSite.FunctionName = "MPI_Send";
   SendSite.Type = MPIFunctionType::PointToPoint;
   SendSite.Inst = &SendFunc->getEntryBlock().front();
   
-  CallSite BcastSite;
+  CallBase BcastSite;
   BcastSite.FunctionName = "MPI_Bcast";
   BcastSite.Type = MPIFunctionType::Collective;
   BcastSite.Inst = &BcastFunc->getEntryBlock().front();
   
   // Verify that parameter extraction and marshaling infrastructure works
   // This tests the integration between MetadataExtractor and HookInserter
-  EXPECT_TRUE(HookInserter->canInstrumentCallSite(SendSite));
-  EXPECT_TRUE(HookInserter->canInstrumentCallSite(BcastSite));
+  EXPECT_TRUE(HookInserter->canInstrumentCallBase(SendSite));
+  EXPECT_TRUE(HookInserter->canInstrumentCallBase(BcastSite));
 }
 
 TEST_F(RuntimeLibraryIntegrationTest, ErrorHandlingIntegration) {
