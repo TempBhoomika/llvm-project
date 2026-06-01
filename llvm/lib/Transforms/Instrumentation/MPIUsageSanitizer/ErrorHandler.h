@@ -202,6 +202,7 @@ public:
   ~ErrorHandler();
   
   /// Report an error with basic information
+  void reportError(StringRef Message);
   void reportError(ErrorLevel Level, ErrorCategory Category, StringRef Message);
   
   /// Report an error with source location
