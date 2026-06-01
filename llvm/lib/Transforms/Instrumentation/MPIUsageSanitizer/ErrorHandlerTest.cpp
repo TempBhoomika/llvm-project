@@ -171,10 +171,10 @@ TEST_F(ErrorHandlerTest, ErrorRecoveryPolicy) {
   EXPECT_FALSE(Handler->shouldContinueAfterError(ErrorLevel::Fatal));
   
   // Test with error context
-  ErrorInfo Error(ErrorLevel::Error, ErrorCategory::UnsupportedPattern, "Unsupported MPI pattern");
+  MPIErrorInfo Error(ErrorLevel::Error, ErrorCategory::UnsupportedPattern, "Unsupported MPI pattern");
   EXPECT_TRUE(Handler->shouldContinueAfterError(Error)); // Unsupported patterns can be skipped
   
-  ErrorInfo FatalError(ErrorLevel::Error, ErrorCategory::PassInfrastructure, "Infrastructure failure");
+  MPIErrorInfo FatalError(ErrorLevel::Error, ErrorCategory::PassInfrastructure, "Infrastructure failure");
   EXPECT_FALSE(Handler->shouldContinueAfterError(FatalError)); // Infrastructure errors are serious
 }
 
@@ -233,7 +233,7 @@ TEST_F(ErrorHandlerTest, ErrorFiltering) {
 }
 
 TEST_F(ErrorHandlerTest, ErrorMessageFormatting) {
-  ErrorInfo Error(ErrorLevel::Error, ErrorCategory::CallDetection, "Test error message");
+  MPIErrorInfo Error(ErrorLevel::Error, ErrorCategory::CallDetection, "Test error message");
   Error.Func = TestFunc;
   Error.Context["test_key"] = "test_value";
   
@@ -306,9 +306,9 @@ TEST_F(ErrorHandlerTest, VerboseReporting) {
 
 TEST_F(ErrorHandlerTest, RecoveryStrategyDetermination) {
   // Test recovery strategy determination for different error types
-  ErrorInfo InfraError(ErrorLevel::Error, ErrorCategory::PassInfrastructure, "Infrastructure failure");
-  ErrorInfo UnsupportedError(ErrorLevel::Warning, ErrorCategory::UnsupportedPattern, "Unsupported pattern");
-  ErrorInfo ConfigError(ErrorLevel::Error, ErrorCategory::Configuration, "Config error");
+  MPIErrorInfo InfraError(ErrorLevel::Error, ErrorCategory::PassInfrastructure, "Infrastructure failure");
+  MPIErrorInfo UnsupportedError(ErrorLevel::Warning, ErrorCategory::UnsupportedPattern, "Unsupported pattern");
+  MPIErrorInfo ConfigError(ErrorLevel::Error, ErrorCategory::Configuration, "Config error");
   
   RecoveryContext Context;
   Context.TotalErrorCount = 5;
@@ -346,7 +346,7 @@ TEST_F(ErrorHandlerTest, GracefulDegradation) {
   Handler->setGracefulDegradationMode(true);
   EXPECT_TRUE(Handler->isGracefulDegradationEnabled());
   
-  ErrorInfo UnsupportedError(ErrorLevel::Error, ErrorCategory::UnsupportedPattern, "Complex pattern");
+  MPIErrorInfo UnsupportedError(ErrorLevel::Error, ErrorCategory::UnsupportedPattern, "Complex pattern");
   bool CanContinue = Handler->handleUnsupportedPattern(UnsupportedError, "ComplexMPIPattern");
   
   EXPECT_TRUE(CanContinue);
@@ -361,7 +361,7 @@ TEST_F(ErrorHandlerTest, GracefulDegradation) {
 
 TEST_F(ErrorHandlerTest, RecoveryRecommendations) {
   // Test recovery recommendation generation
-  ErrorInfo CallDetectionError(ErrorLevel::Error, ErrorCategory::CallDetection, "Detection failed");
+  MPIErrorInfo CallDetectionError(ErrorLevel::Error, ErrorCategory::CallDetection, "Detection failed");
   auto Recommendations = Handler->generateRecoveryRecommendations(CallDetectionError);
   
   EXPECT_FALSE(Recommendations.empty());
@@ -385,7 +385,7 @@ TEST_F(ErrorHandlerTest, RecoveryContextCreation) {
   // Test recovery context creation
   Handler->reportError(ErrorLevel::Warning, ErrorCategory::CallDetection, "Previous error");
   
-  ErrorInfo CurrentError(ErrorLevel::Error, ErrorCategory::CallDetection, "Current error");
+  MPIErrorInfo CurrentError(ErrorLevel::Error, ErrorCategory::CallDetection, "Current error");
   RecoveryContext Context = Handler->createRecoveryContext(CurrentError, "test_phase");
   
   EXPECT_EQ(Context.CurrentError, &CurrentError);
@@ -397,8 +397,8 @@ TEST_F(ErrorHandlerTest, RecoveryContextCreation) {
 }
 
 TEST_F(ErrorHandlerTest, ErrorSeverityInContext) {
-  ErrorInfo CriticalError(ErrorLevel::Error, ErrorCategory::PassInfrastructure, "Critical failure");
-  ErrorInfo NonCriticalError(ErrorLevel::Warning, ErrorCategory::UnsupportedPattern, "Non-critical issue");
+  MPIErrorInfo CriticalError(ErrorLevel::Error, ErrorCategory::PassInfrastructure, "Critical failure");
+  MPIErrorInfo NonCriticalError(ErrorLevel::Warning, ErrorCategory::UnsupportedPattern, "Non-critical issue");
   
   RecoveryContext CriticalContext;
   CriticalContext.IsCriticalPath = true;
@@ -429,7 +429,7 @@ TEST_F(ErrorHandlerTest, EnhancedStatisticsPrinting) {
   Handler->setErrorThreshold(ErrorCategory::CallDetection, 5);
   Handler->reportError(ErrorLevel::Warning, ErrorCategory::CallDetection, "Warning");
   Handler->recordRecoveryAttempt(RecoveryStrategy::SkipAndContinue, true);
-  Handler->handleUnsupportedPattern(ErrorInfo(ErrorLevel::Info, ErrorCategory::UnsupportedPattern, "Test"), "TestPattern");
+  Handler->handleUnsupportedPattern(MPIErrorInfo(ErrorLevel::Info, ErrorCategory::UnsupportedPattern, "Test"), "TestPattern");
   
   std::string Output;
   raw_string_ostream OS(Output);
