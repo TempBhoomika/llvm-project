@@ -455,7 +455,7 @@ bool PropertyVerificationHelpers::verifyCompleteMPICallDetection(Module& M, MPIC
   uint32_t ActualMPICalls = countMPICalls(M);
   
   // Use detector to find MPI calls
-  std::vector<CallBase> DetectedCalls = Detector.detectMPICalls(M);
+  std::vector<CallSite> DetectedCalls = Detector.detectMPICalls(M);
   
   // Verify all calls were detected
   return DetectedCalls.size() == ActualMPICalls;
@@ -505,7 +505,7 @@ bool PropertyVerificationHelpers::verifyOptimizationCorrectness(Module& M, Optim
           if (Function* Callee = Call->getCalledFunction()) {
             if (Callee->getName().startswith("MPI_")) {
               // Create test data
-              CallBase Site(Call, Callee->getName(), MPIFunctionType::PointToPoint, false);
+              CallSite Site(Call, Callee->getName(), MPIFunctionType::PointToPoint, false);
               MPICallMetadata Metadata;
               Metadata.FunctionName = Callee->getName();
               AnalysisResult Analysis; // Default analysis result
@@ -533,12 +533,12 @@ bool PropertyVerificationHelpers::verifyOptimizationCorrectness(Module& M, Optim
 
 bool PropertyVerificationHelpers::verifyMultiLanguageConsistency(Module& M, MPICallDetector& Detector) {
   // Verify that MPI calls from different language bindings are detected consistently
-  std::vector<CallBase> AllCalls = Detector.detectMPICalls(M);
+  std::vector<CallSite> AllCalls = Detector.detectMPICalls(M);
   
   // Check that calls with different name mangling are all detected
   bool FoundC = false, FoundCpp = false, FoundFortran = false;
   
-  for (const CallBase& Call : AllCalls) {
+  for (const CallSite& Call : AllCalls) {
     std::string Name = Call.Function->getName().str();
     if (Name.startswith("MPI_")) FoundC = true;
     else if (Name.startswith("_ZN3MPI")) FoundCpp = true;
@@ -576,7 +576,7 @@ bool PropertyVerificationHelpers::verifyPerformanceMonitoringIntegration(Module&
           if (Function* Callee = Call->getCalledFunction()) {
             if (Callee->getName().startswith("MPI_")) {
               // Create test data
-              CallBase Site(Call, Callee->getName(), MPIFunctionType::PointToPoint, false);
+              CallSite Site(Call, Callee->getName(), MPIFunctionType::PointToPoint, false);
               MPICallMetadata Metadata;
               Metadata.FunctionName = Callee->getName();
               

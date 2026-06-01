@@ -30,6 +30,11 @@ using namespace llvm;
 
 namespace {
 
+struct BufferInfo {
+  Type* ElementType = nullptr;
+  uint64_t Count = 0;
+};
+
 /// Test parameter marshaling data structure
 struct MarshaledParameter {
   /// Parameter type
@@ -61,16 +66,16 @@ public:
   MockParameterMarshaler(LLVMContext& Context) : Context(Context) {}
   
   /// Marshal parameters for runtime library call
-  std::vector<MarshaledParameter> marshalParameters(const CallBase& Site, 
+  std::vector<MarshaledParameter> marshalParameters(const CallSite& Site, 
                                                     const MPICallMetadata& Metadata) {
     std::vector<MarshaledParameter> Marshaled;
     
     // Marshal each parameter based on its role and type
-    for (size_t i = 0; i < Metadata.Parameters.size(); ++i) {
-      const ParameterInfo& ParamInfo = Metadata.Parameters[i];
+    for (size_t i = 0; i < Metadata.ParameterInfos.size(); ++i) {
+      const ParameterInfo& ParamInfo = Metadata.ParameterInfos[i];
       MarshaledParameter MP;
       
-      MP.ParamType = ParamInfo.Type;
+      MP.ParamType = ParamInfo.ParamType;
       MP.Role = ParamInfo.Role;
       MP.IsInput = ParamInfo.IsInput;
       MP.IsOutput = ParamInfo.IsOutput;
@@ -81,7 +86,8 @@ public:
       // Handle different parameter roles
       switch (ParamInfo.Role) {
         case ParameterRole::Buffer:
-          MP.Buffer = ParamInfo.Buffer;
+          MP.Buffer.ElementType = ParamInfo.ParamType;
+          MP.Buffer.Count = 1;
           break;
         case ParameterRole::Count:
         case ParameterRole::Datatype:
@@ -101,7 +107,7 @@ public:
   
   /// Unmarshal parameters from runtime library call
   bool unmarshalParameters(const std::vector<MarshaledParameter>& Marshaled,
-                           CallBase& Site) {
+                           CallSite& Site) {
     // Verify that output parameters can be properly unmarshaled
     for (const auto& MP : Marshaled) {
       if (MP.IsOutput) {
@@ -166,18 +172,15 @@ protected:
   void SetUp() override {
     Context = std::make_unique<LLVMContext>();
     Module = std::make_unique<llvm::Module>("marshaling_test", *Context);
-    RuntimeInterface = std::make_unique<class RuntimeInterface>(*Context);
-    MetadataExtractor = std::make_unique<class MetadataExtractor>(*Context);
+    RuntimeIntf = std::make_unique<llvm::RuntimeInterface>();
+    MetaExtractor = std::make_unique<llvm::MetadataExtractor>();
     Marshaler = std::make_unique<MockParameterMarshaler>(*Context);
-    
-    // Initialize components
-    MetadataExtractor->initialize();
   }
   
   void TearDown() override {
     Marshaler.reset();
-    MetadataExtractor.reset();
-    RuntimeInterface.reset();
+    MetaExtractor.reset();
+    RuntimeIntf.reset();
     Module.reset();
     Context.reset();
   }
@@ -212,8 +215,8 @@ protected:
   
   std::unique_ptr<LLVMContext> Context;
   std::unique_ptr<llvm::Module> Module;
-  std::unique_ptr<class RuntimeInterface> RuntimeInterface;
-  std::unique_ptr<class MetadataExtractor> MetadataExtractor;
+  std::unique_ptr<llvm::RuntimeInterface> RuntimeIntf;
+  std::unique_ptr<llvm::MetadataExtractor> MetaExtractor;
   std::unique_ptr<MockParameterMarshaler> Marshaler;
 };
 
@@ -234,13 +237,13 @@ TEST_F(ParameterMarshalingTest, BasicParameterMarshaling) {
   CallInst* SendCall = createMPICall("MPI_Send", SendFT, Args);
   
   // Create call site
-  CallBase Site;
+  CallSite Site;
   Site.FunctionName = "MPI_Send";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = SendCall;
   
   // Extract metadata
-  MPICallMetadata Metadata = MetadataExtractor->extractCallMetadata(Site);
+  MPICallMetadata Metadata = MetaExtractor->extractMetadata(Site);
   
   // Marshal parameters
   std::vector<MarshaledParameter> Marshaled = Marshaler->marshalParameters(Site, Metadata);
@@ -282,13 +285,13 @@ TEST_F(ParameterMarshalingTest, OutputParameterMarshaling) {
   CallInst* RecvCall = createMPICall("MPI_Recv", RecvFT, Args);
   
   // Create call site
-  CallBase Site;
+  CallSite Site;
   Site.FunctionName = "MPI_Recv";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = RecvCall;
   
   // Extract metadata
-  MPICallMetadata Metadata = MetadataExtractor->extractCallMetadata(Site);
+  MPICallMetadata Metadata = MetaExtractor->extractMetadata(Site);
   
   // Marshal parameters
   std::vector<MarshaledParameter> Marshaled = Marshaler->marshalParameters(Site, Metadata);
@@ -328,13 +331,13 @@ TEST_F(ParameterMarshalingTest, CollectiveParameterMarshaling) {
   CallInst* BcastCall = createMPICall("MPI_Bcast", BcastFT, Args);
   
   // Create call site
-  CallBase Site;
+  CallSite Site;
   Site.FunctionName = "MPI_Bcast";
   Site.Type = MPIFunctionType::Collective;
   Site.Inst = BcastCall;
   
   // Extract metadata
-  MPICallMetadata Metadata = MetadataExtractor->extractCallMetadata(Site);
+  MPICallMetadata Metadata = MetaExtractor->extractMetadata(Site);
   
   // Marshal parameters
   std::vector<MarshaledParameter> Marshaled = Marshaler->marshalParameters(Site, Metadata);
@@ -371,13 +374,13 @@ TEST_F(ParameterMarshalingTest, NonBlockingParameterMarshaling) {
   CallInst* IsendCall = createMPICall("MPI_Isend", IsendFT, Args);
   
   // Create call site
-  CallBase Site;
+  CallSite Site;
   Site.FunctionName = "MPI_Isend";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = IsendCall;
   
   // Extract metadata
-  MPICallMetadata Metadata = MetadataExtractor->extractCallMetadata(Site);
+  MPICallMetadata Metadata = MetaExtractor->extractMetadata(Site);
   
   // Marshal parameters
   std::vector<MarshaledParameter> Marshaled = Marshaler->marshalParameters(Site, Metadata);
@@ -414,13 +417,13 @@ TEST_F(ParameterMarshalingTest, ComplexParameterTypes) {
   CallInst* ComplexCall = createMPICall("MPI_Complex", ComplexFT, Args);
   
   // Create call site
-  CallBase Site;
+  CallSite Site;
   Site.FunctionName = "MPI_Complex";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = ComplexCall;
   
   // Extract metadata
-  MPICallMetadata Metadata = MetadataExtractor->extractCallMetadata(Site);
+  MPICallMetadata Metadata = MetaExtractor->extractMetadata(Site);
   
   // Marshal parameters
   std::vector<MarshaledParameter> Marshaled = Marshaler->marshalParameters(Site, Metadata);
@@ -456,13 +459,13 @@ TEST_F(ParameterMarshalingTest, VariadicParameterMarshaling) {
   CallInst* VariadicCall = createMPICall("MPI_Variadic", VariadicFT, Args);
   
   // Create call site
-  CallBase Site;
+  CallSite Site;
   Site.FunctionName = "MPI_Variadic";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = VariadicCall;
   
   // Extract metadata
-  MPICallMetadata Metadata = MetadataExtractor->extractCallMetadata(Site);
+  MPICallMetadata Metadata = MetaExtractor->extractMetadata(Site);
   
   // Marshal parameters
   std::vector<MarshaledParameter> Marshaled = Marshaler->marshalParameters(Site, Metadata);

@@ -134,8 +134,8 @@ PreservedAnalyses MPISanitizerPass::run(Module &M, ModuleAnalysisManager &AM) {
     }
     
   } catch (const std::exception& E) {
-    if (ErrorHandler) {
-      ErrorHandler->reportError(ErrorCategory::InternalError, ErrorLevel::Error,
+    if (ErrHandler) {
+      ErrHandler->reportError(ErrorCategory::InternalError, ErrorLevel::Error,
                                "Exception in MPI Sanitizer Pass: " + std::string(E.what()),
                                DebugLoc());
     }
@@ -163,11 +163,11 @@ const PassConfiguration& MPISanitizerPass::getConfiguration() const {
 void MPISanitizerPass::initializeComponents() {
   ConfigManager = std::make_unique<ConfigurationManager>();
   CallDetector = std::make_unique<MPICallDetector>();
-  MetadataExtractor = std::make_unique<MetadataExtractor>();
-  HookInserter = std::make_unique<HookInserter>();
-  StaticAnalyzer = std::make_unique<StaticAnalyzer>();
-  OptimizationEngine = std::make_unique<OptimizationEngine>();
-  ErrorHandler = std::make_unique<ErrorHandler>();
+  MetaExtractor = std::make_unique<MetadataExtractor>();
+  HInserter = std::make_unique<HookInserter>();
+  SAnalyzer = std::make_unique<StaticAnalyzer>();
+  OptEngine = std::make_unique<OptimizationEngine>();
+  ErrHandler = std::make_unique<ErrorHandler>();
   RuntimeValidator = std::make_unique<RuntimeInterfaceValidator>();
 }
 
@@ -178,8 +178,8 @@ bool MPISanitizerPass::runCallDetection(Module& M) {
     DetectedCalls = CallDetector->detectMPICalls(M);
     return true;
   } catch (const std::exception& E) {
-    if (ErrorHandler) {
-      ErrorHandler->reportError(ErrorCategory::CallDetection, ErrorLevel::Error,
+    if (ErrHandler) {
+      ErrHandler->reportError(ErrorCategory::CallDetection, ErrorLevel::Error,
                                "Call detection failed: " + std::string(E.what()),
                                DebugLoc());
     }
@@ -188,7 +188,7 @@ bool MPISanitizerPass::runCallDetection(Module& M) {
 }
 
 bool MPISanitizerPass::runMetadataExtraction(Module& M) {
-  if (!MetadataExtractor || DetectedCalls.empty()) return false;
+  if (!MetaExtractor || DetectedCalls.empty()) return false;
   
   try {
     ExtractedMetadata.clear();
@@ -196,15 +196,15 @@ bool MPISanitizerPass::runMetadataExtraction(Module& M) {
     
     for (const auto& Call : DetectedCalls) {
       if (Call.CallInst) {
-        MPICallMetadata Metadata = MetadataExtractor->extractMetadata(*Call.CallInst);
+        MPICallMetadata Metadata = MetaExtractor->extractMetadata(*Call.CallInst);
         ExtractedMetadata.push_back(Metadata);
       }
     }
     
     return !ExtractedMetadata.empty();
   } catch (const std::exception& E) {
-    if (ErrorHandler) {
-      ErrorHandler->reportError(ErrorCategory::MetadataExtraction, ErrorLevel::Error,
+    if (ErrHandler) {
+      ErrHandler->reportError(ErrorCategory::MetadataExtraction, ErrorLevel::Error,
                                "Metadata extraction failed: " + std::string(E.what()),
                                DebugLoc());
     }
@@ -213,21 +213,21 @@ bool MPISanitizerPass::runMetadataExtraction(Module& M) {
 }
 
 bool MPISanitizerPass::runStaticAnalysis(Module& M) {
-  if (!StaticAnalyzer || ExtractedMetadata.empty()) return false;
+  if (!SAnalyzer || ExtractedMetadata.empty()) return false;
   
   try {
     AnalysisResults.clear();
     AnalysisResults.reserve(ExtractedMetadata.size());
     
     for (size_t i = 0; i < DetectedCalls.size() && i < ExtractedMetadata.size(); ++i) {
-      AnalysisResult Result = StaticAnalyzer->analyzeCall(DetectedCalls[i], ExtractedMetadata[i]);
+      AnalysisResult Result = SAnalyzer->analyzeCall(DetectedCalls[i], ExtractedMetadata[i]);
       AnalysisResults.push_back(Result);
     }
     
     return !AnalysisResults.empty();
   } catch (const std::exception& E) {
-    if (ErrorHandler) {
-      ErrorHandler->reportError(ErrorCategory::StaticAnalysis, ErrorLevel::Error,
+    if (ErrHandler) {
+      ErrHandler->reportError(ErrorCategory::StaticAnalysis, ErrorLevel::Error,
                                "Static analysis failed: " + std::string(E.what()),
                                DebugLoc());
     }
@@ -236,14 +236,14 @@ bool MPISanitizerPass::runStaticAnalysis(Module& M) {
 }
 
 bool MPISanitizerPass::runOptimization(Module& M) {
-  if (!OptimizationEngine || AnalysisResults.empty()) return false;
+  if (!OptEngine || AnalysisResults.empty()) return false;
   
   try {
     OptimizationDecisions.clear();
     OptimizationDecisions.reserve(AnalysisResults.size());
     
     for (size_t i = 0; i < DetectedCalls.size() && i < ExtractedMetadata.size() && i < AnalysisResults.size(); ++i) {
-      OptimizationDecision Decision = OptimizationEngine->makeDecision(DetectedCalls[i], 
+      OptimizationDecision Decision = OptEngine->makeDecision(DetectedCalls[i], 
                                                                       ExtractedMetadata[i], 
                                                                       AnalysisResults[i]);
       OptimizationDecisions.push_back(Decision);
@@ -251,8 +251,8 @@ bool MPISanitizerPass::runOptimization(Module& M) {
     
     return !OptimizationDecisions.empty();
   } catch (const std::exception& E) {
-    if (ErrorHandler) {
-      ErrorHandler->reportError(ErrorCategory::Optimization, ErrorLevel::Error,
+    if (ErrHandler) {
+      ErrHandler->reportError(ErrorCategory::Optimization, ErrorLevel::Error,
                                "Optimization failed: " + std::string(E.what()),
                                DebugLoc());
     }
@@ -261,7 +261,7 @@ bool MPISanitizerPass::runOptimization(Module& M) {
 }
 
 bool MPISanitizerPass::runInstrumentation(Module& M) {
-  if (!HookInserter || OptimizationDecisions.empty()) return false;
+  if (!HInserter || OptimizationDecisions.empty()) return false;
   
   try {
     uint32_t HooksInserted = 0;
@@ -269,7 +269,7 @@ bool MPISanitizerPass::runInstrumentation(Module& M) {
     
     for (size_t i = 0; i < DetectedCalls.size() && i < ExtractedMetadata.size() && i < OptimizationDecisions.size(); ++i) {
       if (OptimizationDecisions[i].ShouldInstrument) {
-        bool Success = HookInserter->insertHooks(DetectedCalls[i], ExtractedMetadata[i], OptimizationDecisions[i]);
+        bool Success = HInserter->insertHooks(DetectedCalls[i], ExtractedMetadata[i], OptimizationDecisions[i]);
         if (Success) {
           CallsInstrumented++;
           // Count hooks based on decision
@@ -285,8 +285,8 @@ bool MPISanitizerPass::runInstrumentation(Module& M) {
     
     return CallsInstrumented > 0;
   } catch (const std::exception& E) {
-    if (ErrorHandler) {
-      ErrorHandler->reportError(ErrorCategory::Instrumentation, ErrorLevel::Error,
+    if (ErrHandler) {
+      ErrHandler->reportError(ErrorCategory::Instrumentation, ErrorLevel::Error,
                                "Instrumentation failed: " + std::string(E.what()),
                                DebugLoc());
     }
@@ -300,8 +300,8 @@ bool MPISanitizerPass::validateRuntimeInterface(Module& M) {
   try {
     return RuntimeValidator->validateInterface(M);
   } catch (const std::exception& E) {
-    if (ErrorHandler) {
-      ErrorHandler->reportError(ErrorCategory::RuntimeValidation, ErrorLevel::Warning,
+    if (ErrHandler) {
+      ErrHandler->reportError(ErrorCategory::RuntimeValidation, ErrorLevel::Warning,
                                "Runtime interface validation failed: " + std::string(E.what()),
                                DebugLoc());
     }

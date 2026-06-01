@@ -24,8 +24,8 @@ enum class MPIFunctionType { PointToPoint, Collective, Management };
 ```cpp
 // ✅ Correct: camelCase for functions
 PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
-std::vector<CallBase> detectMPICalls(Function &F);
-MPICallMetadata extractMetadata(const CallBase &Site);
+std::vector<CallSite> detectMPICalls(Function &F);
+MPICallMetadata extractMetadata(const CallSite &Site);
 ```
 
 #### Variables and Parameters
@@ -36,7 +36,7 @@ uint32_t callCount;
 bool enableOptimization;
 
 // ✅ Correct: Parameter naming
-void insertHooks(Function &F, const std::vector<CallBase> &Sites);
+void insertHooks(Function &F, const std::vector<CallSite> &Sites);
 ```
 
 #### Constants and Macros
@@ -109,7 +109,7 @@ PreservedAnalyses MPISanitizerPass::run(Module &M,
     if (F.isDeclaration())
       continue;
       
-    auto CallBases = CallDetector->detectMPICalls(F);
+    auto CallSites = CallDetector->detectMPICalls(F);
     // Process call sites...
   }
   
@@ -122,7 +122,7 @@ PreservedAnalyses MPISanitizerPass::run(Module &M,
 // ✅ Correct: Lines under 80 characters, proper wrapping
 bool OptimizedMPICallDetector::insertHooksOptimized(
     Function &F, 
-    const std::vector<CallBase> &Sites) {
+    const std::vector<CallSite> &Sites) {
   // Implementation
 }
 
@@ -168,11 +168,11 @@ class MPISanitizerPass : public PassInfoMixin<MPISanitizerPass> {
 /// information for subsequent analysis.
 ///
 /// \param F The function to analyze for MPI calls
-/// \return Vector of CallBase objects representing detected MPI calls
+/// \return Vector of CallSite objects representing detected MPI calls
 ///
 /// \note This method uses both static analysis and pattern matching to
 ///       identify MPI calls, including those made through function pointers.
-std::vector<CallBase> detectMPICalls(Function &F);
+std::vector<CallSite> detectMPICalls(Function &F);
 ```
 
 #### Parameter Documentation
@@ -187,7 +187,7 @@ std::vector<CallBase> detectMPICalls(Function &F);
 /// \pre F must be a valid function with at least one MPI call
 /// \post All specified call sites will have pre/post hooks inserted
 bool insertHooks(Function &F, 
-                const std::vector<CallBase> &Sites,
+                const std::vector<CallSite> &Sites,
                 const HookConfiguration &Config);
 ```
 
@@ -284,7 +284,7 @@ private:
 // Usage with automatic cleanup
 {
   ScopedProfiler ProfileScope(Profiler, "CallDetection");
-  auto CallBases = CallDetector->detectMPICalls(F);
+  auto CallSites = CallDetector->detectMPICalls(F);
   // Profiler automatically stopped when scope exits
 }
 ```
@@ -299,11 +299,11 @@ void processFunction(Function *F) {  // F is owned by Module
     return;
     
   // Process function without taking ownership
-  auto CallBases = detectMPICalls(*F);
+  auto CallSites = detectMPICalls(*F);
 }
 
 // ✅ Correct: References preferred over pointers when possible
-void insertHooks(Function &F, const std::vector<CallBase> &Sites) {
+void insertHooks(Function &F, const std::vector<CallSite> &Sites) {
   // Function reference ensures valid object
   for (const auto &Site : Sites) {
     // Process each call site
@@ -363,11 +363,11 @@ PreservedAnalyses MPISanitizerPass::run(Module &M, ModuleAnalysisManager &MAM) {
 class OptimizedMPICallDetector {
 private:
   // Cache frequently accessed data
-  mutable DenseMap<Function*, std::vector<CallBase>> FunctionCallCache;
+  mutable DenseMap<Function*, std::vector<CallSite>> FunctionCallCache;
   mutable DenseMap<std::string, bool> FunctionNameCache;
   
 public:
-  std::vector<CallBase> detectMPICalls(Function &F) {
+  std::vector<CallSite> detectMPICalls(Function &F) {
     // Check cache first to avoid recomputation
     auto CacheIt = FunctionCallCache.find(&F);
     if (CacheIt != FunctionCallCache.end()) {
@@ -386,7 +386,7 @@ public:
 ```cpp
 // ✅ Efficient: Batch operations to minimize IR modifications
 bool HookInserter::insertHooksBatch(
-    const std::vector<std::pair<Function*, std::vector<CallBase>>> &FunctionSites) {
+    const std::vector<std::pair<Function*, std::vector<CallSite>>> &FunctionSites) {
   
   bool Modified = false;
   
@@ -435,12 +435,12 @@ TEST_F(MPICallDetectorTest, DetectsBasicMPICalls) {
   auto *F = M->getFunction("test_function");
   ASSERT_NE(F, nullptr);
   
-  auto CallBases = Detector->detectMPICalls(*F);
+  auto CallSites = Detector->detectMPICalls(*F);
   
-  EXPECT_EQ(CallBases.size(), 3);
-  EXPECT_EQ(CallBases[0].FunctionName, "MPI_Send");
-  EXPECT_EQ(CallBases[1].FunctionName, "MPI_Recv");
-  EXPECT_EQ(CallBases[2].FunctionName, "MPI_Finalize");
+  EXPECT_EQ(CallSites.size(), 3);
+  EXPECT_EQ(CallSites[0].FunctionName, "MPI_Send");
+  EXPECT_EQ(CallSites[1].FunctionName, "MPI_Recv");
+  EXPECT_EQ(CallSites[2].FunctionName, "MPI_Finalize");
 }
 ```
 

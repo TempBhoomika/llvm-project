@@ -53,14 +53,14 @@ enum class MPIFunctionType {
 };
 
 /// Represents a detected MPI call site
-struct CallBase {
+struct CallSite {
   Instruction* CallInst;
   StringRef FunctionName;
   MPIFunctionType Type;
   bool IsIndirect;
   DebugLoc Location;
   
-  CallBase(Instruction* CI, StringRef Name, MPIFunctionType T, bool Indirect)
+  CallSite(Instruction* CI, StringRef Name, MPIFunctionType T, bool Indirect)
     : CallInst(CI), FunctionName(Name), Type(T), IsIndirect(Indirect) {
     if (CI) Location = CI->getDebugLoc();
   }
@@ -80,10 +80,10 @@ public:
   ~MPICallDetector();
   
   /// Detect all MPI calls in a function
-  std::vector<CallBase> detectMPICalls(Function& F);
+  std::vector<CallSite> detectMPICalls(Function& F);
   
   /// Detect all MPI calls in a function with alias analysis support
-  std::vector<CallBase> detectMPICalls(Function& F, AAResults* AA);
+  std::vector<CallSite> detectMPICalls(Function& F, AAResults* AA);
   
   /// Check if a function name corresponds to an MPI function
   bool isMPIFunction(StringRef FunctionName);
@@ -96,13 +96,13 @@ public:
 
 private:
   /// Detect direct MPI function calls
-  std::vector<CallBase> detectDirectCalls(Function& F);
+  std::vector<CallSite> detectDirectCalls(Function& F);
   
   /// Detect indirect MPI function calls through function pointers
-  std::vector<CallBase> detectIndirectCalls(Function& F);
+  std::vector<CallSite> detectIndirectCalls(Function& F);
   
   /// Detect indirect MPI function calls with alias analysis support
-  std::vector<CallBase> detectIndirectCallsWithAA(Function& F, AAResults* AA);
+  std::vector<CallSite> detectIndirectCallsWithAA(Function& F, AAResults* AA);
   
   /// Analyze an indirect call to determine if it might be an MPI function
   bool analyzeIndirectCall(CallInst* CI, Value* CalledValue);

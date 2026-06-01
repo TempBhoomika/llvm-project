@@ -44,7 +44,7 @@ void DataFlowAnalyzer::initialize(Function& F, DominatorTree* DT, AAResults* AA)
   BoundsCache.clear();
 }
 
-bool DataFlowAnalyzer::analyzeCallBase(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DataFlowAnalyzer::analyzeCallSite(const CallSite& Site, const MPICallMetadata& Metadata) {
   if (!CurrentFunction) return false;
   
   LLVM_DEBUG(dbgs() << "Analyzing data flow for MPI call: " << Site.FunctionName << "\n");
@@ -153,7 +153,7 @@ bool DataFlowAnalyzer::hasAliasingConcerns(Value* V1, Value* V2) {
   return AA->alias(V1, V2) != AliasResult::NoAlias;
 }
 
-bool DataFlowAnalyzer::isInLoop(const CallBase& Site) {
+bool DataFlowAnalyzer::isInLoop(const CallSite& Site) {
   if (!Site.CallInst || !CurrentFunction) return false;
   
   BasicBlock* BB = Site.CallInst->getParent();
@@ -168,7 +168,7 @@ bool DataFlowAnalyzer::isInLoop(const CallBase& Site) {
   return false;
 }
 
-bool DataFlowAnalyzer::hasComplexControlFlow(const CallBase& Site) {
+bool DataFlowAnalyzer::hasComplexControlFlow(const CallSite& Site) {
   if (!Site.CallInst || !CurrentFunction) return false;
   
   BasicBlock* BB = Site.CallInst->getParent();
@@ -337,7 +337,7 @@ bool ConstantAnalyzer::analyzeParameters(const MPICallMetadata& Metadata) {
   return allConstant;
 }
 
-bool ConstantAnalyzer::hasConstantBehavior(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool ConstantAnalyzer::hasConstantBehavior(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Environment functions have constant behavior
   if (Site.Type == MPIFunctionType::Environment) {
     return true;
@@ -428,7 +428,7 @@ void StaticAnalyzer::initialize(Function& F, DominatorTree* DT, AAResults* AA) {
   DeadlockAnalyzer_->initialize(F, DT);
 }
 
-AnalysisResult StaticAnalyzer::analyzeCallBase(const CallBase& Site, const MPICallMetadata& Metadata) {
+AnalysisResult StaticAnalyzer::analyzeCallSite(const CallSite& Site, const MPICallMetadata& Metadata) {
   AnalysisResult Result;
   
   LLVM_DEBUG(dbgs() << "Analyzing MPI call site: " << Site.FunctionName << "\n");
@@ -437,7 +437,7 @@ AnalysisResult StaticAnalyzer::analyzeCallBase(const CallBase& Site, const MPICa
   Result.HasConstantParameters = ConstAnalyzer->hasConstantBehavior(Site, Metadata);
   
   // Perform data flow analysis
-  DFAnalyzer->analyzeCallBase(Site, Metadata);
+  DFAnalyzer->analyzeCallSite(Site, Metadata);
   
   // Check for known communicator and buffer size
   auto CommIt = Metadata.NamedParameters.find("communicator");
@@ -467,7 +467,7 @@ AnalysisResult StaticAnalyzer::analyzeCallBase(const CallBase& Site, const MPICa
   return Result;
 }
 
-bool StaticAnalyzer::isProvablySafe(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::isProvablySafe(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Enhanced safety analysis for Task 10.2
   
   // Check for compile-time constants
@@ -509,11 +509,11 @@ bool StaticAnalyzer::isProvablySafe(const CallBase& Site, const MPICallMetadata&
   return false;
 }
 
-bool StaticAnalyzer::hasCompileTimeConstants(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::hasCompileTimeConstants(const CallSite& Site, const MPICallMetadata& Metadata) {
   return ConstAnalyzer->analyzeParameters(Metadata);
 }
 
-bool StaticAnalyzer::couldCauseDeadlock(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::couldCauseDeadlock(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Use the DeadlockAnalyzer for comprehensive deadlock analysis
   if (DeadlockAnalyzer_->analyzeDeadlockRisk(Site, Metadata)) {
     return true;
@@ -535,7 +535,7 @@ bool StaticAnalyzer::couldCauseDeadlock(const CallBase& Site, const MPICallMetad
   return false;
 }
 
-bool StaticAnalyzer::hasDataRaceRisk(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::hasDataRaceRisk(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Enhanced data race analysis for Task 10.2
   
   // Non-blocking operations may have data race risks
@@ -564,13 +564,13 @@ bool StaticAnalyzer::hasDataRaceRisk(const CallBase& Site, const MPICallMetadata
   return false;
 }
 
-bool StaticAnalyzer::canOptimizeInstrumentation(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::canOptimizeInstrumentation(const CallSite& Site, const MPICallMetadata& Metadata) {
   return isProvablySafe(Site, Metadata) && 
          !couldCauseDeadlock(Site, Metadata) && 
          !hasDataRaceRisk(Site, Metadata);
 }
 
-OptimizationLevel StaticAnalyzer::getRecommendedOptimizationLevel(const CallBase& Site, 
+OptimizationLevel StaticAnalyzer::getRecommendedOptimizationLevel(const CallSite& Site, 
                                                                   const MPICallMetadata& Metadata) {
   // Start with no optimization
   OptimizationLevel Level = OptimizationLevel::None;
@@ -598,15 +598,15 @@ OptimizationLevel StaticAnalyzer::getRecommendedOptimizationLevel(const CallBase
 }
 
 // Legacy methods for backward compatibility
-bool StaticAnalyzer::analyzeConstants(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzeConstants(const CallSite& Site, const MPICallMetadata& Metadata) {
   return ConstAnalyzer->analyzeParameters(Metadata);
 }
 
-bool StaticAnalyzer::performDataFlowAnalysis(const CallBase& Site) {
+bool StaticAnalyzer::performDataFlowAnalysis(const CallSite& Site) {
   // This method is kept for backward compatibility but doesn't have metadata
   // Create empty metadata for the call
   MPICallMetadata EmptyMetadata;
-  return DFAnalyzer->analyzeCallBase(Site, EmptyMetadata);
+  return DFAnalyzer->analyzeCallSite(Site, EmptyMetadata);
 }
 
 bool StaticAnalyzer::analyzeFunctionTypeSafety(MPIFunctionType Type) {
@@ -623,7 +623,7 @@ bool StaticAnalyzer::analyzeFunctionTypeSafety(MPIFunctionType Type) {
   }
 }
 
-bool StaticAnalyzer::matchesSafePattern(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::matchesSafePattern(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Check for known safe usage patterns
   // This is a placeholder for more sophisticated pattern matching
   
@@ -637,7 +637,7 @@ bool StaticAnalyzer::matchesSafePattern(const CallBase& Site, const MPICallMetad
   return false;
 }
 
-bool StaticAnalyzer::analyzeCollectiveSafety(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzeCollectiveSafety(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Collective operations are safe if:
   // 1. Communicator is known and constant
   // 2. All processes call the same collective
@@ -653,7 +653,7 @@ bool StaticAnalyzer::analyzeCollectiveSafety(const CallBase& Site, const MPICall
   return false;
 }
 
-bool StaticAnalyzer::analyzePointToPointSafety(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzePointToPointSafety(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Point-to-point operations are safe if:
   // 1. Source/destination ranks are known
   // 2. Tags are consistent
@@ -695,7 +695,7 @@ void DeadlockAnalyzer::initialize(Function& F, DominatorTree* DT) {
   CommunicatorSafetyCache.clear();
 }
 
-bool DeadlockAnalyzer::analyzeDeadlockRisk(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::analyzeDeadlockRisk(const CallSite& Site, const MPICallMetadata& Metadata) {
   if (!Site.CallInst) return false;
   
   // Check cache first
@@ -734,7 +734,7 @@ bool DeadlockAnalyzer::analyzeDeadlockRisk(const CallBase& Site, const MPICallMe
   return hasRisk;
 }
 
-bool DeadlockAnalyzer::analyzeCollectiveDeadlock(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::analyzeCollectiveDeadlock(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Collective operations can deadlock if not called by all processes
   // or if called in different orders
   
@@ -759,7 +759,7 @@ bool DeadlockAnalyzer::analyzeCollectiveDeadlock(const CallBase& Site, const MPI
   return false;
 }
 
-bool DeadlockAnalyzer::analyzePointToPointDeadlock(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::analyzePointToPointDeadlock(const CallSite& Site, const MPICallMetadata& Metadata) {
   StringRef FuncName = Site.FunctionName;
   
   // Blocking send/recv operations can cause deadlock
@@ -775,7 +775,7 @@ bool DeadlockAnalyzer::analyzePointToPointDeadlock(const CallBase& Site, const M
   return false;
 }
 
-bool DeadlockAnalyzer::hasCircularDependency(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::hasCircularDependency(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Simplified circular dependency detection
   // In a real implementation, this would analyze the control flow graph
   // and communication patterns to detect potential cycles
@@ -800,7 +800,7 @@ bool DeadlockAnalyzer::hasCircularDependency(const CallBase& Site, const MPICall
   return false;
 }
 
-bool DeadlockAnalyzer::hasMismatchedCollectives(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::hasMismatchedCollectives(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Check for potential mismatched collective operations
   // This is a simplified check - real implementation would need global analysis
   
@@ -812,7 +812,7 @@ bool DeadlockAnalyzer::hasMismatchedCollectives(const CallBase& Site, const MPIC
   return hasRankDependentDeadlock(Site, Metadata);
 }
 
-bool DeadlockAnalyzer::hasBlockingNonBlockingMix(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::hasBlockingNonBlockingMix(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Check for improper mixing of blocking and non-blocking operations
   StringRef FuncName = Site.FunctionName;
   
@@ -827,7 +827,7 @@ bool DeadlockAnalyzer::hasBlockingNonBlockingMix(const CallBase& Site, const MPI
   return false;
 }
 
-bool DeadlockAnalyzer::hasImproperSynchronization(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::hasImproperSynchronization(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Check for improper synchronization patterns
   StringRef FuncName = Site.FunctionName;
   
@@ -839,7 +839,7 @@ bool DeadlockAnalyzer::hasImproperSynchronization(const CallBase& Site, const MP
   return false;
 }
 
-bool DeadlockAnalyzer::analyzeRequestLifecycle(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::analyzeRequestLifecycle(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Analyze request handle lifecycle for potential issues
   auto RequestIt = Metadata.NamedParameters.find("request");
   if (RequestIt == Metadata.NamedParameters.end()) {
@@ -860,7 +860,7 @@ bool DeadlockAnalyzer::analyzeRequestLifecycle(const CallBase& Site, const MPICa
   return false;
 }
 
-bool DeadlockAnalyzer::detectSendRecvCycle(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::detectSendRecvCycle(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Detect potential send-receive cycles
   // This is a simplified implementation
   
@@ -885,7 +885,7 @@ bool DeadlockAnalyzer::detectSendRecvCycle(const CallBase& Site, const MPICallMe
   return hasVariableTarget || hasVariableTag;
 }
 
-bool DeadlockAnalyzer::hasBarrierSyncIssues(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::hasBarrierSyncIssues(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Check for barrier synchronization issues
   // Barriers can deadlock if not called by all processes in the communicator
   
@@ -925,7 +925,7 @@ bool DeadlockAnalyzer::analyzeCommunicatorDeadlock(Value* Comm) {
   return isSafe;
 }
 
-bool DeadlockAnalyzer::hasRankDependentDeadlock(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::hasRankDependentDeadlock(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Check for rank-dependent control flow that could cause deadlock
   // This is a simplified check - real implementation would analyze control flow
   
@@ -948,7 +948,7 @@ bool DeadlockAnalyzer::hasRankDependentDeadlock(const CallBase& Site, const MPIC
   return false;
 }
 
-bool DeadlockAnalyzer::analyzeTagDeadlock(Value* Tag, const CallBase& Site) {
+bool DeadlockAnalyzer::analyzeTagDeadlock(Value* Tag, const CallSite& Site) {
   // Analyze tag usage for potential deadlock
   if (!Tag) return false;
   
@@ -963,7 +963,7 @@ bool DeadlockAnalyzer::analyzeTagDeadlock(Value* Tag, const CallBase& Site) {
   return false;
 }
 
-bool DeadlockAnalyzer::hasWildcardReceiveDeadlock(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool DeadlockAnalyzer::hasWildcardReceiveDeadlock(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Check for wildcard receive deadlock potential
   auto SourceIt = Metadata.NamedParameters.find("source");
   auto TagIt = Metadata.NamedParameters.find("tag");
@@ -991,7 +991,7 @@ bool DeadlockAnalyzer::hasWildcardReceiveDeadlock(const CallBase& Site, const MP
 // Enhanced StaticAnalyzer Safety Analysis Methods
 //===----------------------------------------------------------------------===//
 
-bool StaticAnalyzer::analyzeSafetyPatterns(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzeSafetyPatterns(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Analyze comprehensive safety patterns
   StringRef FuncName = Site.FunctionName;
   
@@ -1014,7 +1014,7 @@ bool StaticAnalyzer::analyzeSafetyPatterns(const CallBase& Site, const MPICallMe
   return false;
 }
 
-bool StaticAnalyzer::analyzeOperationOrdering(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzeOperationOrdering(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Analyze MPI operation ordering for safety
   // This is a simplified implementation
   
@@ -1028,7 +1028,7 @@ bool StaticAnalyzer::analyzeOperationOrdering(const CallBase& Site, const MPICal
   return false;
 }
 
-bool StaticAnalyzer::analyzeCommunicatorSafety(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzeCommunicatorSafety(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Check for safe communicator usage patterns
   auto CommIt = Metadata.NamedParameters.find("communicator");
   if (CommIt == Metadata.NamedParameters.end()) {
@@ -1051,7 +1051,7 @@ bool StaticAnalyzer::analyzeCommunicatorSafety(const CallBase& Site, const MPICa
   return isa<Constant>(Comm);
 }
 
-bool StaticAnalyzer::analyzeBufferSafety(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzeBufferSafety(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Analyze buffer safety (bounds, alignment, etc.)
   auto BufferIt = Metadata.NamedParameters.find("buffer");
   if (BufferIt == Metadata.NamedParameters.end()) {
@@ -1078,7 +1078,7 @@ bool StaticAnalyzer::analyzeBufferSafety(const CallBase& Site, const MPICallMeta
   return false;
 }
 
-bool StaticAnalyzer::analyzeNonBlockingDataRace(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzeNonBlockingDataRace(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Enhanced data race analysis for non-blocking operations
   StringRef FuncName = Site.FunctionName;
   
@@ -1096,7 +1096,7 @@ bool StaticAnalyzer::analyzeNonBlockingDataRace(const CallBase& Site, const MPIC
   return false;
 }
 
-bool StaticAnalyzer::analyzeOneSidedDataRace(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzeOneSidedDataRace(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Analyze one-sided communication data race potential
   StringRef FuncName = Site.FunctionName;
   
@@ -1109,7 +1109,7 @@ bool StaticAnalyzer::analyzeOneSidedDataRace(const CallBase& Site, const MPICall
   return false;
 }
 
-bool StaticAnalyzer::analyzeRequestHandleRace(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzeRequestHandleRace(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Check for request handle data races
   auto RequestIt = Metadata.NamedParameters.find("request");
   if (RequestIt == Metadata.NamedParameters.end()) {
@@ -1124,7 +1124,7 @@ bool StaticAnalyzer::analyzeRequestHandleRace(const CallBase& Site, const MPICal
   return !isa<Constant>(Request);
 }
 
-bool StaticAnalyzer::analyzeWindowSynchronization(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzeWindowSynchronization(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Analyze window synchronization for data races
   StringRef FuncName = Site.FunctionName;
   
@@ -1142,7 +1142,7 @@ bool StaticAnalyzer::analyzeWindowSynchronization(const CallBase& Site, const MP
   return false;
 }
 
-bool StaticAnalyzer::analyzeMemoryConsistency(const CallBase& Site, const MPICallMetadata& Metadata) {
+bool StaticAnalyzer::analyzeMemoryConsistency(const CallSite& Site, const MPICallMetadata& Metadata) {
   // Check for memory consistency issues in MPI operations
   StringRef FuncName = Site.FunctionName;
   

@@ -31,20 +31,20 @@ class RuntimeInterfaceValidatorTest : public ::testing::Test {
 protected:
   void SetUp() override {
     Context = std::make_unique<LLVMContext>();
-    ErrorHandler = std::make_unique<class ErrorHandler>(*Context);
-    Validator = std::make_unique<RuntimeInterfaceValidator>(*Context, *ErrorHandler);
+    ErrHandler = std::make_unique<ErrorHandler>(*Context);
+    Validator = std::make_unique<RuntimeInterfaceValidator>(*Context, *ErrHandler);
     
     // Create a test module
     Module = std::make_unique<llvm::Module>("test_module", *Context);
     
     // Initialize validator
-    RuntimeInterface Interface(*Context);
+    RuntimeInterface Interface;
     Validator->initialize(Interface);
   }
   
   void TearDown() override {
     Validator.reset();
-    ErrorHandler.reset();
+    ErrHandler.reset();
     Module.reset();
     Context.reset();
   }
@@ -84,7 +84,7 @@ protected:
   }
   
   std::unique_ptr<LLVMContext> Context;
-  std::unique_ptr<class ErrorHandler> ErrorHandler;
+  std::unique_ptr<ErrorHandler> ErrHandler;
   std::unique_ptr<RuntimeInterfaceValidator> Validator;
   std::unique_ptr<llvm::Module> Module;
 };

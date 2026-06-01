@@ -137,16 +137,16 @@ protected:
     InitializeNativeTargetAsmParser();
     
     Context = std::make_unique<LLVMContext>();
-    ErrorHandler = std::make_unique<class ErrorHandler>(*Context);
-    RuntimeInterface = std::make_unique<class RuntimeInterface>(*Context);
-    Validator = std::make_unique<RuntimeInterfaceValidator>(*Context, *ErrorHandler);
-    HookInserter = std::make_unique<class HookInserter>(*Context, *RuntimeInterface);
+    ErrHandler = std::make_unique<llvm::ErrorHandler>(*Context);
+    RuntimeIntf = std::make_unique<llvm::RuntimeInterface>();
+    Validator = std::make_unique<RuntimeInterfaceValidator>(*Context, *ErrHandler);
+    HInserter = std::make_unique<llvm::HookInserter>();
     
     // Create test module
     Module = std::make_unique<llvm::Module>("integration_test", *Context);
     
     // Initialize components
-    Validator->initialize(*RuntimeInterface);
+    Validator->initialize(*RuntimeIntf);
     
     // Reset mock runtime
     MockRuntimeLibrary::getInstance().reset();
@@ -154,10 +154,10 @@ protected:
   
   void TearDown() override {
     ExecutionEngine.reset();
-    HookInserter.reset();
+    HInserter.reset();
     Validator.reset();
-    RuntimeInterface.reset();
-    ErrorHandler.reset();
+    RuntimeIntf.reset();
+    ErrHandler.reset();
     Module.reset();
     Context.reset();
   }
@@ -247,10 +247,10 @@ protected:
   }
   
   std::unique_ptr<LLVMContext> Context;
-  std::unique_ptr<class ErrorHandler> ErrorHandler;
-  std::unique_ptr<class RuntimeInterface> RuntimeInterface;
+  std::unique_ptr<llvm::ErrorHandler> ErrHandler;
+  std::unique_ptr<llvm::RuntimeInterface> RuntimeIntf;
   std::unique_ptr<RuntimeInterfaceValidator> Validator;
-  std::unique_ptr<class HookInserter> HookInserter;
+  std::unique_ptr<llvm::HookInserter> HInserter;
   std::unique_ptr<llvm::Module> Module;
   std::unique_ptr<ExecutionEngine> ExecutionEngine;
 };
@@ -296,7 +296,7 @@ TEST_F(RuntimeLibraryIntegrationTest, HookInsertionAndExecution) {
   createRuntimeHooks();
   
   // Create call site for instrumentation
-  CallBase Site;
+  CallSite Site;
   Site.FunctionName = "MPI_Send";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = &MPIFunc->getEntryBlock().front();
@@ -309,7 +309,7 @@ TEST_F(RuntimeLibraryIntegrationTest, HookInsertionAndExecution) {
   
   // Insert hooks (this would normally be done during pass execution)
   // For this test, we verify that the hook insertion infrastructure works
-  EXPECT_TRUE(HookInserter->initialize(Config));
+  HInserter->setConfiguration(Config);
   
   // Verify hook declarations were created properly
   Function* PreCallHook = Module->getFunction("mpi_sanitizer_pre_call");
@@ -349,20 +349,20 @@ TEST_F(RuntimeLibraryIntegrationTest, ParameterMarshalingValidation) {
   Function* WtimeFunc = createMPIFunction("MPI_Wtime", DoubleTy, {});
   
   // Validate that hook insertion can handle different parameter types
-  CallBase SendSite;
+  CallSite SendSite;
   SendSite.FunctionName = "MPI_Send";
   SendSite.Type = MPIFunctionType::PointToPoint;
   SendSite.Inst = &SendFunc->getEntryBlock().front();
   
-  CallBase BcastSite;
+  CallSite BcastSite;
   BcastSite.FunctionName = "MPI_Bcast";
   BcastSite.Type = MPIFunctionType::Collective;
   BcastSite.Inst = &BcastFunc->getEntryBlock().front();
   
   // Verify that parameter extraction and marshaling infrastructure works
   // This tests the integration between MetadataExtractor and HookInserter
-  EXPECT_TRUE(HookInserter->canInstrumentCallBase(SendSite));
-  EXPECT_TRUE(HookInserter->canInstrumentCallBase(BcastSite));
+  EXPECT_TRUE(HInserter->shouldInstrumentCallSite(SendSite));
+  EXPECT_TRUE(HInserter->shouldInstrumentCallSite(BcastSite));
 }
 
 TEST_F(RuntimeLibraryIntegrationTest, ErrorHandlingIntegration) {
@@ -382,12 +382,12 @@ TEST_F(RuntimeLibraryIntegrationTest, ErrorHandlingIntegration) {
   EXPECT_TRUE(ErrorResult.IsValid);
   
   // Test that error handler can report to runtime library
-  ErrorHandler->reportError(ErrorLevel::Error, ErrorCategory::CallDetection, 
+  ErrHandler->reportError(ErrorLevel::Error, ErrorCategory::CallDetection, 
                            "Test error message");
   
   // Verify error was recorded (in a real implementation, this would
   // trigger a call to the runtime error reporting function)
-  const auto& Errors = ErrorHandler->getErrors();
+  const auto& Errors = ErrHandler->getErrors();
   EXPECT_FALSE(Errors.empty());
   EXPECT_EQ(Errors.back().Message, "Test error message");
 }
@@ -426,7 +426,7 @@ TEST_F(RuntimeLibraryIntegrationTest, PerformanceHookIntegration) {
   PerfConfig.EnableTimingHooks = true;
   PerfConfig.EnableCommVolumeHooks = true;
   
-  EXPECT_TRUE(HookInserter->initialize(PerfConfig));
+  HInserter->setConfiguration(PerfConfig);
 }
 
 TEST_F(RuntimeLibraryIntegrationTest, VersionCompatibilityIntegration) {
@@ -516,7 +516,7 @@ TEST_F(RuntimeLibraryIntegrationTest, CompleteIntegrationWorkflow) {
   Config.EnablePostCallHooks = true;
   Config.EnableErrorChecking = true;
   
-  EXPECT_TRUE(HookInserter->initialize(Config));
+  HInserter->setConfiguration(Config);
   
   // 6. Verify module is valid LLVM IR
   std::string VerifyError;

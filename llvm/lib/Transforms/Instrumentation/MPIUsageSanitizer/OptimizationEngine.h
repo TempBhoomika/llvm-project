@@ -100,10 +100,10 @@ struct OptimizationConfiguration {
 
 /// Statistics for optimization decisions
 struct OptimizationStatistics {
-  unsigned TotalCallBases = 0;
-  unsigned InstrumentedCallBases = 0;
-  unsigned OptimizedCallBases = 0;
-  unsigned SkippedCallBases = 0;
+  unsigned TotalCallSites = 0;
+  unsigned InstrumentedCallSites = 0;
+  unsigned OptimizedCallSites = 0;
+  unsigned SkippedCallSites = 0;
   
   // By function type
   std::map<MPIFunctionType, unsigned> CallsByType;
@@ -118,10 +118,10 @@ struct OptimizationStatistics {
   double EstimatedSafetyCoverage = 0.0;
   
   void reset() {
-    TotalCallBases = 0;
-    InstrumentedCallBases = 0;
-    OptimizedCallBases = 0;
-    SkippedCallBases = 0;
+    TotalCallSites = 0;
+    InstrumentedCallSites = 0;
+    OptimizedCallSites = 0;
+    SkippedCallSites = 0;
     CallsByType.clear();
     InstrumentedByType.clear();
     OptimizedByType.clear();
@@ -147,33 +147,33 @@ public:
   void setStaticAnalyzer(std::shared_ptr<StaticAnalyzer> Analyzer);
   
   /// Make optimization decision for a call site
-  OptimizationDecision makeDecision(const CallBase& Site, 
+  OptimizationDecision makeDecision(const CallSite& Site, 
                                    const MPICallMetadata& Metadata,
                                    const AnalysisResult& Analysis);
   
   /// Batch optimization for multiple call sites
-  std::vector<OptimizationDecision> optimizeCallBases(
-    const std::vector<CallBase>& Sites,
+  std::vector<OptimizationDecision> optimizeCallSites(
+    const std::vector<CallSite>& Sites,
     const std::vector<MPICallMetadata>& Metadata,
     const std::vector<AnalysisResult>& Analyses);
   
   /// Check if a call site should be instrumented
-  bool shouldInstrument(const CallBase& Site, 
+  bool shouldInstrument(const CallSite& Site, 
                        const MPICallMetadata& Metadata,
                        const AnalysisResult& Analysis);
   
   /// Get recommended instrumentation level for a call site
-  InstrumentationLevel getInstrumentationLevel(const CallBase& Site,
+  InstrumentationLevel getInstrumentationLevel(const CallSite& Site,
                                               const MPICallMetadata& Metadata,
                                               const AnalysisResult& Analysis);
   
   /// Estimate performance impact of instrumenting a call site
-  double estimatePerformanceImpact(const CallBase& Site,
+  double estimatePerformanceImpact(const CallSite& Site,
                                   const MPICallMetadata& Metadata,
                                   const AnalysisResult& Analysis);
   
   /// Estimate safety benefit of instrumenting a call site
-  double estimateSafetyBenefit(const CallBase& Site,
+  double estimateSafetyBenefit(const CallSite& Site,
                               const MPICallMetadata& Metadata,
                               const AnalysisResult& Analysis);
   
@@ -191,22 +191,22 @@ public:
 
 private:
   /// Analyze function type for optimization decisions
-  OptimizationDecision analyzeFunctionType(const CallBase& Site,
+  OptimizationDecision analyzeFunctionType(const CallSite& Site,
                                           const MPICallMetadata& Metadata,
                                           const AnalysisResult& Analysis);
   
   /// Apply safety-based optimization rules
-  OptimizationDecision applySafetyOptimization(const CallBase& Site,
+  OptimizationDecision applySafetyOptimization(const CallSite& Site,
                                               const MPICallMetadata& Metadata,
                                               const AnalysisResult& Analysis);
   
   /// Apply performance-based optimization rules
-  OptimizationDecision applyPerformanceOptimization(const CallBase& Site,
+  OptimizationDecision applyPerformanceOptimization(const CallSite& Site,
                                                     const MPICallMetadata& Metadata,
                                                     const AnalysisResult& Analysis);
   
   /// Apply configuration-based optimization rules
-  OptimizationDecision applyConfigurationRules(const CallBase& Site,
+  OptimizationDecision applyConfigurationRules(const CallSite& Site,
                                                const MPICallMetadata& Metadata,
                                                const AnalysisResult& Analysis);
   
@@ -214,7 +214,7 @@ private:
   OptimizationDecision combineDecisions(const std::vector<OptimizationDecision>& Decisions);
   
   /// Calculate optimization score for a call site
-  double calculateOptimizationScore(const CallBase& Site,
+  double calculateOptimizationScore(const CallSite& Site,
                                    const MPICallMetadata& Metadata,
                                    const AnalysisResult& Analysis);
   
@@ -229,13 +229,13 @@ private:
                                                  const AnalysisResult& Analysis) const;
   
   /// Update statistics for a decision
-  void updateStatistics(const CallBase& Site,
+  void updateStatistics(const CallSite& Site,
                        const MPICallMetadata& Metadata,
                        const OptimizationDecision& Decision);
   
   /// Validate optimization decision
   bool validateDecision(const OptimizationDecision& Decision,
-                       const CallBase& Site,
+                       const CallSite& Site,
                        const MPICallMetadata& Metadata) const;
   
   OptimizationConfiguration Config;

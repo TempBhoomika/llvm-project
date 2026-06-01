@@ -102,7 +102,7 @@ TEST_F(ErrorHandlerTest, ErrorReportingWithFunction) {
 
 TEST_F(ErrorHandlerTest, MPISpecificErrorReporting) {
   // Create a test call site
-  CallBase Site;
+  CallSite Site;
   Site.FunctionName = "MPI_Send";
   Site.Type = MPIFunctionType::PointToPoint;
   Site.Inst = TestInst;

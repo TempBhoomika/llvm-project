@@ -88,11 +88,11 @@ private:
   /// Pass components
   std::unique_ptr<ConfigurationManager> ConfigManager;
   std::unique_ptr<MPICallDetector> CallDetector;
-  std::unique_ptr<MetadataExtractor> MetadataExtractor;
-  std::unique_ptr<HookInserter> HookInserter;
-  std::unique_ptr<StaticAnalyzer> StaticAnalyzer;
-  std::unique_ptr<OptimizationEngine> OptimizationEngine;
-  std::unique_ptr<ErrorHandler> ErrorHandler;
+  std::unique_ptr<MetadataExtractor> MetaExtractor;
+  std::unique_ptr<HookInserter> HInserter;
+  std::unique_ptr<StaticAnalyzer> SAnalyzer;
+  std::unique_ptr<OptimizationEngine> OptEngine;
+  std::unique_ptr<ErrorHandler> ErrHandler;
   std::unique_ptr<RuntimeInterfaceValidator> RuntimeValidator;
   
   /// Performance profiling and optimization
@@ -101,7 +101,7 @@ private:
   PassPerformanceProfile PerformanceProfile;
   
   /// Detected MPI calls
-  std::vector<CallBase> DetectedCalls;
+  std::vector<CallSite> DetectedCalls;
   
   /// Extracted metadata
   std::vector<MPICallMetadata> ExtractedMetadata;

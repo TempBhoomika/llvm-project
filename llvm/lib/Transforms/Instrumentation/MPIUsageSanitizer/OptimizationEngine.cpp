@@ -72,7 +72,7 @@ void OptimizationEngine::setStaticAnalyzer(std::shared_ptr<StaticAnalyzer> Analy
   this->Analyzer = Analyzer;
 }
 
-OptimizationDecision OptimizationEngine::makeDecision(const CallBase& Site,
+OptimizationDecision OptimizationEngine::makeDecision(const CallSite& Site,
                                                       const MPICallMetadata& Metadata,
                                                       const AnalysisResult& Analysis) {
   // Check cache first
@@ -121,8 +121,8 @@ OptimizationDecision OptimizationEngine::makeDecision(const CallBase& Site,
   return FinalDecision;
 }
 
-std::vector<OptimizationDecision> OptimizationEngine::optimizeCallBases(
-    const std::vector<CallBase>& Sites,
+std::vector<OptimizationDecision> OptimizationEngine::optimizeCallSites(
+    const std::vector<CallSite>& Sites,
     const std::vector<MPICallMetadata>& Metadata,
     const std::vector<AnalysisResult>& Analyses) {
   
@@ -136,21 +136,21 @@ std::vector<OptimizationDecision> OptimizationEngine::optimizeCallBases(
   return Decisions;
 }
 
-bool OptimizationEngine::shouldInstrument(const CallBase& Site,
+bool OptimizationEngine::shouldInstrument(const CallSite& Site,
                                          const MPICallMetadata& Metadata,
                                          const AnalysisResult& Analysis) {
   OptimizationDecision Decision = makeDecision(Site, Metadata, Analysis);
   return Decision.ShouldInstrument;
 }
 
-InstrumentationLevel OptimizationEngine::getInstrumentationLevel(const CallBase& Site,
+InstrumentationLevel OptimizationEngine::getInstrumentationLevel(const CallSite& Site,
                                                                 const MPICallMetadata& Metadata,
                                                                 const AnalysisResult& Analysis) {
   OptimizationDecision Decision = makeDecision(Site, Metadata, Analysis);
   return Decision.Level;
 }
 
-double OptimizationEngine::estimatePerformanceImpact(const CallBase& Site,
+double OptimizationEngine::estimatePerformanceImpact(const CallSite& Site,
                                                      const MPICallMetadata& Metadata,
                                                      const AnalysisResult& Analysis) {
   double BaseImpact = BasePerformanceImpact[Site.Type];
@@ -189,7 +189,7 @@ double OptimizationEngine::estimatePerformanceImpact(const CallBase& Site,
   return std::min(1.0, BaseImpact);
 }
 
-double OptimizationEngine::estimateSafetyBenefit(const CallBase& Site,
+double OptimizationEngine::estimateSafetyBenefit(const CallSite& Site,
                                                 const MPICallMetadata& Metadata,
                                                 const AnalysisResult& Analysis) {
   double BaseBenefit = BaseSafetyBenefit[Site.Type];
@@ -231,18 +231,18 @@ std::string OptimizationEngine::generateOptimizationReport() const {
   std::ostringstream Report;
   
   Report << "=== MPI Optimization Engine Report ===\n";
-  Report << "Total Call Sites: " << Stats.TotalCallBases << "\n";
-  Report << "Instrumented: " << Stats.InstrumentedCallBases 
-         << " (" << (Stats.TotalCallBases > 0 ? 
-                    (100.0 * Stats.InstrumentedCallBases / Stats.TotalCallBases) : 0.0)
+  Report << "Total Call Sites: " << Stats.TotalCallSites << "\n";
+  Report << "Instrumented: " << Stats.InstrumentedCallSites 
+         << " (" << (Stats.TotalCallSites > 0 ? 
+                    (100.0 * Stats.InstrumentedCallSites / Stats.TotalCallSites) : 0.0)
          << "%)\n";
-  Report << "Optimized: " << Stats.OptimizedCallBases 
-         << " (" << (Stats.TotalCallBases > 0 ? 
-                    (100.0 * Stats.OptimizedCallBases / Stats.TotalCallBases) : 0.0)
+  Report << "Optimized: " << Stats.OptimizedCallSites 
+         << " (" << (Stats.TotalCallSites > 0 ? 
+                    (100.0 * Stats.OptimizedCallSites / Stats.TotalCallSites) : 0.0)
          << "%)\n";
-  Report << "Skipped: " << Stats.SkippedCallBases 
-         << " (" << (Stats.TotalCallBases > 0 ? 
-                    (100.0 * Stats.SkippedCallBases / Stats.TotalCallBases) : 0.0)
+  Report << "Skipped: " << Stats.SkippedCallSites 
+         << " (" << (Stats.TotalCallSites > 0 ? 
+                    (100.0 * Stats.SkippedCallSites / Stats.TotalCallSites) : 0.0)
          << "%)\n";
   
   Report << "\nBy Function Type:\n";
@@ -268,7 +268,7 @@ std::string OptimizationEngine::generateOptimizationReport() const {
   return Report.str();
 }
 
-OptimizationDecision OptimizationEngine::analyzeFunctionType(const CallBase& Site,
+OptimizationDecision OptimizationEngine::analyzeFunctionType(const CallSite& Site,
                                                             const MPICallMetadata& Metadata,
                                                             const AnalysisResult& Analysis) {
   OptimizationDecision Decision;
@@ -340,7 +340,7 @@ OptimizationDecision OptimizationEngine::analyzeFunctionType(const CallBase& Sit
   return Decision;
 }
 
-OptimizationDecision OptimizationEngine::applySafetyOptimization(const CallBase& Site,
+OptimizationDecision OptimizationEngine::applySafetyOptimization(const CallSite& Site,
                                                                 const MPICallMetadata& Metadata,
                                                                 const AnalysisResult& Analysis) {
   OptimizationDecision Decision;
@@ -373,7 +373,7 @@ OptimizationDecision OptimizationEngine::applySafetyOptimization(const CallBase&
   return Decision;
 }
 
-OptimizationDecision OptimizationEngine::applyPerformanceOptimization(const CallBase& Site,
+OptimizationDecision OptimizationEngine::applyPerformanceOptimization(const CallSite& Site,
                                                                       const MPICallMetadata& Metadata,
                                                                       const AnalysisResult& Analysis) {
   OptimizationDecision Decision;
@@ -414,7 +414,7 @@ OptimizationDecision OptimizationEngine::applyPerformanceOptimization(const Call
   return Decision;
 }
 
-OptimizationDecision OptimizationEngine::applyConfigurationRules(const CallBase& Site,
+OptimizationDecision OptimizationEngine::applyConfigurationRules(const CallSite& Site,
                                                                  const MPICallMetadata& Metadata,
                                                                  const AnalysisResult& Analysis) {
   OptimizationDecision Decision;
@@ -495,7 +495,7 @@ OptimizationDecision OptimizationEngine::combineDecisions(const std::vector<Opti
   return Combined;
 }
 
-double OptimizationEngine::calculateOptimizationScore(const CallBase& Site,
+double OptimizationEngine::calculateOptimizationScore(const CallSite& Site,
                                                      const MPICallMetadata& Metadata,
                                                      const AnalysisResult& Analysis) {
   double PerformanceImpact = estimatePerformanceImpact(Site, Metadata, Analysis);
@@ -561,32 +561,32 @@ InstrumentationLevel OptimizationEngine::adjustLevelForOptimization(Instrumentat
   return BaseLevel;
 }
 
-void OptimizationEngine::updateStatistics(const CallBase& Site,
+void OptimizationEngine::updateStatistics(const CallSite& Site,
                                          const MPICallMetadata& Metadata,
                                          const OptimizationDecision& Decision) {
-  Stats.TotalCallBases++;
+  Stats.TotalCallSites++;
   Stats.CallsByType[Site.Type]++;
-  Stats.CallsByLevel[static_cast<OptimizationLevel>(Decision.Level)]++;
+  Stats.CallsByLevel[Decision.Level]++;
   
   if (Decision.ShouldInstrument) {
-    Stats.InstrumentedCallBases++;
+    Stats.InstrumentedCallSites++;
     Stats.InstrumentedByType[Site.Type]++;
   } else {
-    Stats.SkippedCallBases++;
+    Stats.SkippedCallSites++;
   }
   
   if (Decision.Level < InstrumentationLevel::Standard) {
-    Stats.OptimizedCallBases++;
+    Stats.OptimizedCallSites++;
     Stats.OptimizedByType[Site.Type]++;
   }
   
   // Update performance metrics
-  Stats.EstimatedOverheadReduction += (1.0 - Decision.PerformanceImpact) / Stats.TotalCallBases;
-  Stats.EstimatedSafetyCoverage += Decision.SafetyBenefit / Stats.TotalCallBases;
+  Stats.EstimatedOverheadReduction += (1.0 - Decision.PerformanceImpact) / Stats.TotalCallSites;
+  Stats.EstimatedSafetyCoverage += Decision.SafetyBenefit / Stats.TotalCallSites;
 }
 
 bool OptimizationEngine::validateDecision(const OptimizationDecision& Decision,
-                                         const CallBase& Site,
+                                         const CallSite& Site,
                                          const MPICallMetadata& Metadata) const {
   // Basic validation checks
   if (Decision.Level == InstrumentationLevel::None && Decision.ShouldInstrument) {
